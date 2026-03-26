@@ -428,3 +428,4 @@ FodyWeavers.xsd
 *.msp
 .DS_Store
 *.user
+backend/UnlockTheRoom.API/appsettings.json
