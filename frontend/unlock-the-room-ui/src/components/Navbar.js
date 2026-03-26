@@ -32,6 +32,7 @@ function Navbar() {
     <div style={styles.nav}>
       <span style={styles.brand}>Unlock The Room</span>
       <div style={styles.links}>
+        {navLink("Dashboard", "/dashboard")}
         {navLink("Levels", "/levels")}
         {navLink("Reports", "/reports")}
       </div>

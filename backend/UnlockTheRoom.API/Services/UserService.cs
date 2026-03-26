@@ -28,7 +28,7 @@ public class UserService
         var user = new User
         {
             Username = dto.Username,
-            Email = dto.Email,
+            Email = dto.Email.ToLower().Trim(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Role = role,
             CreatedAt = DateTime.UtcNow
@@ -47,7 +47,7 @@ public class UserService
     public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
     {
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == dto.Email);
+            .FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower().Trim());;
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return null;

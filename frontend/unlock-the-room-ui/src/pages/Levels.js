@@ -16,6 +16,11 @@ function Levels() {
     columns: 10,
   });
   const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState({
+    name: "",
+    rows: "",
+    columns: "",
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +47,19 @@ function Levels() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    const errors = { name: "", rows: "", columns: "" };
+    if (!form.name.trim()) errors.name = "Name is required.";
+    else if (form.name.trim().length < 3) errors.name = "Name must be at least 3 characters.";
+    if (!form.rows || form.rows < 5 || form.rows > 30)
+      errors.rows = "Rows must be between 5 and 30.";
+    if (!form.columns || form.columns < 5 || form.columns > 30)
+      errors.columns = "Columns must be between 5 and 30.";
+    if (errors.name || errors.rows || errors.columns) {
+      setFormErrors(errors);
+      return;
+    }
+
     try {
       if (editingLevel) {
         await api.put(`/Levels/${editingLevel.id}`, {
@@ -71,6 +89,17 @@ function Levels() {
     setShowForm(true);
   };
 
+  const togglePublish = async (level) => {
+    await api.put(`/Levels/${level.id}`, {
+      name: level.name,
+      difficulty: level.difficulty,
+      rows: level.rows,
+      columns: level.columns,
+      isPublished: !level.isPublished,
+    });
+    fetchLevels();
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this level?")) return;
     await api.delete(`/Levels/${id}`);
@@ -82,6 +111,7 @@ function Levels() {
     setEditingLevel(null);
     setForm({ name: "", difficulty: "Easy", rows: 10, columns: 10 });
     setError("");
+    setFormErrors({ name: "", rows: "", columns: "" });
   };
 
   return (
@@ -124,11 +154,29 @@ function Levels() {
                 <div style={styles.field}>
                   <label style={styles.label}>Name</label>
                   <input
-                    style={styles.input}
+                    style={{
+                      ...styles.input,
+                      ...(formErrors.name ? { borderColor: "#c0392b" } : {}),
+                    }}
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value });
+                      if (formErrors.name)
+                        setFormErrors((prev) => ({ ...prev, name: "" }));
+                    }}
                     required
                   />
+                  {formErrors.name && (
+                    <p
+                      style={{
+                        color: "#c0392b",
+                        fontSize: "12px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {formErrors.name}
+                    </p>
+                  )}
                 </div>
                 <div style={styles.field}>
                   <label style={styles.label}>Difficulty</label>
@@ -147,30 +195,62 @@ function Levels() {
                 <div style={styles.field}>
                   <label style={styles.label}>Rows</label>
                   <input
-                    style={styles.input}
+                    style={{
+                      ...styles.input,
+                      ...(formErrors.rows ? { borderColor: "#c0392b" } : {}),
+                    }}
                     type="number"
                     min="5"
                     max="30"
                     value={form.rows}
-                    onChange={(e) =>
-                      setForm({ ...form, rows: parseInt(e.target.value) })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, rows: parseInt(e.target.value) });
+                      if (formErrors.rows)
+                        setFormErrors((prev) => ({ ...prev, rows: "" }));
+                    }}
                     required
                   />
+                  {formErrors.rows && (
+                    <p
+                      style={{
+                        color: "#c0392b",
+                        fontSize: "12px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {formErrors.rows}
+                    </p>
+                  )}
                 </div>
                 <div style={styles.field}>
                   <label style={styles.label}>Columns</label>
                   <input
-                    style={styles.input}
+                    style={{
+                      ...styles.input,
+                      ...(formErrors.columns ? { borderColor: "#c0392b" } : {}),
+                    }}
                     type="number"
                     min="5"
                     max="30"
                     value={form.columns}
-                    onChange={(e) =>
-                      setForm({ ...form, columns: parseInt(e.target.value) })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, columns: parseInt(e.target.value) });
+                      if (formErrors.columns)
+                        setFormErrors((prev) => ({ ...prev, columns: "" }));
+                    }}
                     required
                   />
+                  {formErrors.columns && (
+                    <p
+                      style={{
+                        color: "#c0392b",
+                        fontSize: "12px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {formErrors.columns}
+                    </p>
+                  )}
                 </div>
               </div>
               {error && <p style={styles.error}>{error}</p>}
@@ -234,6 +314,15 @@ function Levels() {
                     onClick={() => handleEdit(level)}
                   >
                     Edit
+                  </button>
+                  <button
+                    style={{
+                      ...styles.actionBtn,
+                      color: level.isPublished ? "#b7660a" : "#2e7d32",
+                    }}
+                    onClick={() => togglePublish(level)}
+                  >
+                    {level.isPublished ? "Unpublish" : "Publish"}
                   </button>
                   <button
                     style={{ ...styles.actionBtn, color: "#c0392b" }}
