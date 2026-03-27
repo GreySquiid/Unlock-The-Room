@@ -32,6 +32,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<LevelService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddHttpClient<AiService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

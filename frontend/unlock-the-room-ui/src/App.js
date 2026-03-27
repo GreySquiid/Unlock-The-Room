@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Levels from './pages/Levels';
-import Reports from './pages/Reports';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Levels from "./pages/Levels";
+import Reports from "./pages/Reports";
+import AiGenerator from "./pages/AiGenerator";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/levels" element={<Levels />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/ai-generator" element={<AiGenerator />} />
       </Routes>
     </BrowserRouter>
   );

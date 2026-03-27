@@ -35,6 +35,7 @@ function Navbar() {
         {navLink("Dashboard", "/dashboard")}
         {navLink("Levels", "/levels")}
         {navLink("Reports", "/reports")}
+        {navLink("AI Generator", "/ai-generator")}
       </div>
       <div style={styles.right}>
         <span style={styles.userLabel}>{user.email}</span>
