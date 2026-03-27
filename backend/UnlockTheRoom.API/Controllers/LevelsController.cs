@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using UnlockTheRoom.API.DTOs;
 using UnlockTheRoom.API.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace UnlockTheRoom.API.Controllers;
 
@@ -50,5 +51,12 @@ public class LevelsController : ControllerBase
     {
         var success = await _levelService.DeleteLevelAsync(id);
         return success ? NoContent() : NotFound();
+    }
+    [HttpPut("reorder")]
+    [Authorize(Roles = "Developer")]
+    public async Task<IActionResult> Reorder([FromBody] ReorderLevelsDto dto)
+    {
+        await _levelService.ReorderLevelsAsync(dto);
+        return NoContent();
     }
 }

@@ -29,3 +29,7 @@ public class LevelResponseDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
+public class ReorderLevelsDto
+{
+    public List<int> LevelIds { get; set; } = new();
+}

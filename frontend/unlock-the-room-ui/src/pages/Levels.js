@@ -21,6 +21,12 @@ function Levels() {
     rows: "",
     columns: "",
   });
+  const [reorderMode, setReorderMode] = useState(false);
+  const [reorderLevels, setReorderLevels] = useState([]);
+  const [originalOrder, setOriginalOrder] = useState([]);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [reorderSuccess, setReorderSuccess] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,18 +120,89 @@ function Levels() {
     setFormErrors({ name: "", rows: "", columns: "" });
   };
 
+  const handleReorderToggle = () => {
+    setReorderMode(true);
+    setReorderLevels([...levels]);
+    setOriginalOrder([...levels]);
+    setShowForm(false);
+  };
+
+  const handleDragStart = (index) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (index) => {
+    if (dragIndex === null || dragIndex === index) {
+      setDragOverIndex(null);
+      return;
+    }
+    const updated = [...reorderLevels];
+    const [moved] = updated.splice(dragIndex, 1);
+    updated.splice(index, 0, moved);
+    setReorderLevels(updated);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await api.put("/Levels/reorder", {
+        levelIds: reorderLevels.map((l) => l.id),
+      });
+      setLevels(reorderLevels);
+      setReorderSuccess("Level order saved.");
+      setTimeout(() => {
+        setReorderSuccess("");
+        setReorderMode(false);
+      }, 1500);
+    } catch {
+      setReorderSuccess("");
+    }
+  };
+
+  const handleCancelReorder = () => {
+    setReorderLevels([...originalOrder]);
+    setReorderMode(false);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <div>
       <Navbar />
       <div style={styles.page}>
         <div style={styles.header}>
           <h1 style={styles.title}>Level management</h1>
-          <button style={styles.primaryBtn} onClick={() => setShowForm(true)}>
-            + New level
-          </button>
+          {reorderMode ? (
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              {reorderSuccess && (
+                <span style={styles.reorderSuccess}>{reorderSuccess}</span>
+              )}
+              <button style={styles.primaryBtn} onClick={handleSaveOrder}>
+                Save order
+              </button>
+              <button style={styles.cancelBtn} onClick={handleCancelReorder}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button style={styles.secondaryBtn} onClick={handleReorderToggle}>
+                Reorder levels
+              </button>
+              <button style={styles.primaryBtn} onClick={() => setShowForm(true)}>
+                + New level
+              </button>
+            </div>
+          )}
         </div>
 
-        <div style={styles.toolbar}>
+        {!reorderMode && <div style={styles.toolbar}>
           <input
             style={styles.search}
             placeholder="Search by name..."
@@ -142,9 +219,9 @@ function Levels() {
             <option value="Medium">Medium</option>
             <option value="Hard">Hard</option>
           </select>
-        </div>
+        </div>}
 
-        {showForm && (
+        {!reorderMode && showForm && (
           <div style={styles.formCard}>
             <h2 style={styles.formTitle}>
               {editingLevel ? "Edit level" : "New level"}
@@ -270,7 +347,44 @@ function Levels() {
           </div>
         )}
 
-        <table style={styles.table}>
+        {reorderMode && (
+          <div style={styles.reorderList}>
+            {reorderLevels.map((level, index) => (
+              <div
+                key={level.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDrop={() => handleDrop(index)}
+                onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+                style={{
+                  ...styles.reorderRow,
+                  ...(dragOverIndex === index ? styles.reorderRowOver : {}),
+                  opacity: dragIndex === index ? 0.4 : 1,
+                }}
+              >
+                <span style={styles.dragHandle}>⠿</span>
+                <span style={styles.reorderName}>{level.name}</span>
+                <span
+                  style={
+                    level.difficulty === "Hard"
+                      ? styles.badgeRed
+                      : level.difficulty === "Medium"
+                      ? styles.badgeAmber
+                      : styles.badgeGreen
+                  }
+                >
+                  {level.difficulty}
+                </span>
+                <span style={styles.reorderGrid}>
+                  {level.rows} × {level.columns}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!reorderMode && <table style={styles.table}>
           <thead>
             <tr>
               <th style={styles.th}>Name</th>
@@ -334,7 +448,7 @@ function Levels() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>}
       </div>
     </div>
   );
@@ -452,6 +566,16 @@ const styles = {
     fontWeight: "500",
     cursor: "pointer",
   },
+  secondaryBtn: {
+    padding: "8px 16px",
+    background: "#fff",
+    color: "#185FA5",
+    border: "1px solid #185FA5",
+    borderRadius: "8px",
+    fontSize: "13px",
+    fontWeight: "500",
+    cursor: "pointer",
+  },
   cancelBtn: {
     padding: "8px 16px",
     background: "#fff",
@@ -460,6 +584,64 @@ const styles = {
     borderRadius: "8px",
     fontSize: "13px",
     cursor: "pointer",
+  },
+  reorderList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    marginBottom: "1.5rem",
+  },
+  reorderRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "12px 16px",
+    background: "#f8fafc",
+    border: "1px solid #e0e0e0",
+    borderLeft: "4px solid #185FA5",
+    borderRadius: "8px",
+    cursor: "grab",
+    userSelect: "none",
+  },
+  reorderRowOver: {
+    background: "#e8f0fb",
+    borderLeft: "4px solid #0d3d70",
+    borderColor: "#185FA5",
+  },
+  dragHandle: {
+    fontSize: "18px",
+    color: "#aaa",
+    lineHeight: 1,
+  },
+  reorderName: {
+    flex: 1,
+    fontSize: "14px",
+    fontWeight: "500",
+  },
+  reorderGrid: {
+    fontSize: "13px",
+    color: "#666",
+  },
+  reorderSuccess: {
+    fontSize: "13px",
+    color: "#2e7d32",
+    fontWeight: "500",
+  },
+  badgeRed: {
+    background: "#fde8e8",
+    color: "#9b1c1c",
+    padding: "2px 10px",
+    borderRadius: "99px",
+    fontSize: "11px",
+    fontWeight: "500",
+  },
+  badgeAmber: {
+    background: "#fef3c7",
+    color: "#92400e",
+    padding: "2px 10px",
+    borderRadius: "99px",
+    fontSize: "11px",
+    fontWeight: "500",
   },
 };
 

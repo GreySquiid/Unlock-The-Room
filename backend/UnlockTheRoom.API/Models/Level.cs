@@ -11,7 +11,7 @@ public class Level
     public bool IsPublished { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
+    public int OrderIndex { get; set; } = 0;
     public virtual ICollection<GameObject> GameObjects { get; set; } = new List<GameObject>();
     public virtual ICollection<Score> Scores { get; set; } = new List<Score>();
     public virtual ICollection<SavedLevel> SavedLevels { get; set; } = new List<SavedLevel>();

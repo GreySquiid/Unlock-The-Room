@@ -25,7 +25,8 @@ public class LevelService
             query = query.Where(l => l.Difficulty.ToLower() == difficulty.ToLower());
 
         return await query
-            .OrderByDescending(l => l.CreatedAt)
+            .OrderBy(l => l.OrderIndex)
+            .ThenByDescending(l => l.CreatedAt)
             .Select(l => MapToDto(l))
             .ToListAsync();
     }
@@ -91,4 +92,17 @@ public class LevelService
         CreatedAt = level.CreatedAt,
         UpdatedAt = level.UpdatedAt
     };
+    public async Task ReorderLevelsAsync(ReorderLevelsDto dto)
+    {
+        for (int i = 0; i < dto.LevelIds.Count; i++)
+        {
+            var level = await _context.Levels.FindAsync(dto.LevelIds[i]);
+            if (level != null)
+            {
+                level.OrderIndex = i;
+                level.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+        await _context.SaveChangesAsync();
+    }
 }
