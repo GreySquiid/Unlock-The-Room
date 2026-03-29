@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Levels from "./pages/Levels";
 import Reports from "./pages/Reports";
 import AiGenerator from "./pages/AiGenerator";
+import Game from "./pages/Game";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/reports" element={<Reports />} />
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/ai-generator" element={<AiGenerator />} />
+        <Route path="/game" element={<Game />} />
       </Routes>
     </BrowserRouter>
   );

@@ -39,12 +39,17 @@ public class LevelService
 
     public async Task<LevelResponseDto> CreateLevelAsync(CreateLevelDto dto)
     {
+        var maxOrder = await _context.Levels.AnyAsync()
+            ? await _context.Levels.MaxAsync(l => l.OrderIndex)
+            : -1;
+
         var level = new Level
         {
             Name = dto.Name,
             Difficulty = dto.Difficulty,
             Rows = dto.Rows,
             Columns = dto.Columns,
+            OrderIndex = maxOrder + 1,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -104,5 +109,37 @@ public class LevelService
             }
         }
         await _context.SaveChangesAsync();
+    }
+    public async Task<LevelDetailDto?> GetLevelDetailAsync(int id)
+    {
+        var level = await _context.Levels
+            .Include(l => l.GameObjects)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (level == null) return null;
+
+        return new LevelDetailDto
+        {
+            Id = level.Id,
+            Name = level.Name,
+            Difficulty = level.Difficulty,
+            Rows = level.Rows,
+            Columns = level.Columns,
+            IsValidated = level.IsValidated,
+            IsPublished = level.IsPublished,
+            CreatedAt = level.CreatedAt,
+            UpdatedAt = level.UpdatedAt,
+            GameObjects = level.GameObjects.Select(g => new GameObjectDto
+            {
+                Id = g.Id,
+                ObjectType = g.ObjectType,
+                PositionX = (int)g.X,
+                PositionY = (int)g.Y,
+                Width = (int)g.Width,
+                Height = (int)g.Height,
+                Color = g is Key k ? k.Color : g is Models.Barrier b ? b.RequiredKeyColor : null,
+                HazardType = g is Hazard h ? h.HazardType : null
+            }).ToList()
+        };
     }
 }

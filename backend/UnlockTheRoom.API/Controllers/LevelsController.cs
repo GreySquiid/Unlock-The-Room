@@ -25,7 +25,7 @@ public class LevelsController : ControllerBase
         return Ok(levels);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var level = await _levelService.GetLevelByIdAsync(id);
@@ -39,14 +39,14 @@ public class LevelsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = level.Id }, level);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateLevelDto dto)
     {
         var level = await _levelService.UpdateLevelAsync(id, dto);
         return level == null ? NotFound() : Ok(level);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
         var success = await _levelService.DeleteLevelAsync(id);
@@ -58,5 +58,11 @@ public class LevelsController : ControllerBase
     {
         await _levelService.ReorderLevelsAsync(dto);
         return NoContent();
+    }
+    [HttpGet("{id:int}/detail")]
+    public async Task<IActionResult> GetDetail(int id)
+    {
+        var level = await _levelService.GetLevelDetailAsync(id);
+        return level == null ? NotFound() : Ok(level);
     }
 }

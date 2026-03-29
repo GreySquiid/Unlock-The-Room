@@ -9,6 +9,7 @@ const COLORS = {
   Green: "#639922",
   Yellow: "#EF9F27",
   Purple: "#7F77DD",
+  White: "#E8E8E8",
 };
 const OBJECT_COLORS = {
   Key: "#EF9F27",
@@ -21,8 +22,8 @@ const OBJECT_COLORS = {
 function AiGenerator() {
   const [form, setForm] = useState({
     difficulty: "Medium",
-    rows: 12,
-    columns: 16,
+    rows: 18,
+    columns: 24,
     keyCount: 3,
     includeHazards: true,
     includeMovingPlatforms: false,
@@ -201,8 +202,8 @@ function AiGenerator() {
                 <input
                   style={styles.input}
                   type="number"
-                  min="8"
-                  max="20"
+                  min="12"
+                  max="24"
                   value={form.rows}
                   onChange={(e) =>
                     setForm({ ...form, rows: parseInt(e.target.value) })
@@ -214,8 +215,8 @@ function AiGenerator() {
                 <input
                   style={styles.input}
                   type="number"
-                  min="10"
-                  max="24"
+                  min="16"
+                  max="32"
                   value={form.columns}
                   onChange={(e) =>
                     setForm({ ...form, columns: parseInt(e.target.value) })
@@ -236,6 +237,8 @@ function AiGenerator() {
                 <option value={1}>1 key</option>
                 <option value={2}>2 keys</option>
                 <option value={3}>3 keys</option>
+                <option value={4}>4 keys</option>
+                <option value={5}>5 keys</option>
               </select>
             </div>
 
@@ -337,6 +340,7 @@ function AiGenerator() {
                     { label: "Button", color: "#888780" },
                     { label: "Hazard", color: "#E24B4A" },
                     { label: "Exit door", color: "#1D9E75" },
+                    { label: "White (exit)", color: "#E8E8E8" },
                   ].map((item) => (
                     <div key={item.label} style={styles.legendItem}>
                       <div
@@ -374,6 +378,12 @@ function AiGenerator() {
                       style={{ ...styles.legendDot, background: "#7F77DD" }}
                     />
                     <span style={{ color: "#666" }}>Purple</span>
+                  </div>
+                  <div style={styles.legendItem}>
+                    <div
+                      style={{ ...styles.legendDot, background: "#E8E8E8", border: "1px solid #ccc" }}
+                    />
+                    <span style={{ color: "#666" }}>White</span>
                   </div>
                 </div>
 
