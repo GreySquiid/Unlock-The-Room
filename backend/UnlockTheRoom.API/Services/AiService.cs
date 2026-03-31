@@ -215,9 +215,34 @@ public class AiService
         return allColors.Take(keyCount).ToList();
     }
 
+    private static string GenerateUniqueLevelName(string difficulty)
+    {
+        var adjectives = new List<string>
+        {
+            "Crimson", "Azure", "Gilded", "Shadow", "Frozen",
+            "Neon", "Obsidian", "Amber", "Verdant", "Ivory",
+            "Cobalt", "Scarlet", "Emerald", "Violet", "Copper",
+            "Ashen", "Sapphire", "Onyx", "Bronze", "Silver"
+        };
+        var nouns = new List<string>
+        {
+            "Descent", "Vault", "Labyrinth", "Sanctum", "Passage",
+            "Chamber", "Corridor", "Ascent", "Hollow", "Citadel",
+            "Depths", "Summit", "Bastion", "Threshold", "Archive",
+            "Nexus", "Expanse", "Reaches", "Stronghold", "Refuge"
+        };
+
+        var rng = new Random();
+        var adj = adjectives[rng.Next(adjectives.Count)];
+        var noun = nouns[rng.Next(nouns.Count)];
+        return $"{adj} {noun}";
+    }
+
     private static string BuildPrompt(GenerateLevelRequestDto request)
     {
-        var levelName = request.LevelName ?? $"AI Level - {request.Difficulty}";
+        var levelName = string.IsNullOrWhiteSpace(request.LevelName)
+            ? GenerateUniqueLevelName(request.Difficulty)
+            : request.LevelName;
         int groundRow = request.Rows - 1;
         int rightWall = request.Columns - 1;
         int spawnX = 2;
