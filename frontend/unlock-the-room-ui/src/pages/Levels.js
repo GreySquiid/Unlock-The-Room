@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import LevelEditor from "../components/LevelEditor";
 import api from "../services/api";
 
 function Levels() {
@@ -27,6 +28,7 @@ function Levels() {
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [reorderSuccess, setReorderSuccess] = useState("");
+  const [editingLayout, setEditingLayout] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -384,6 +386,17 @@ function Levels() {
           </div>
         )}
 
+        {editingLayout && (
+          <LevelEditor
+            level={editingLayout}
+            onClose={() => setEditingLayout(null)}
+            onPlayTest={(lvl) => {
+              setEditingLayout(null);
+              navigate("/game", { state: { autoPlay: lvl } });
+            }}
+          />
+        )}
+
         {!reorderMode && <table style={styles.table}>
           <thead>
             <tr>
@@ -424,8 +437,8 @@ function Levels() {
                 </td>
                 <td style={styles.td}>
                   <button
-                    style={styles.actionBtn}
-                    onClick={() => handleEdit(level)}
+                    style={{ ...styles.actionBtn, color: "#534AB7" }}
+                    onClick={() => setEditingLayout(level)}
                   >
                     Edit
                   </button>

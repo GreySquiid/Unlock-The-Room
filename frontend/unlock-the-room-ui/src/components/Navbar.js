@@ -11,17 +11,14 @@ function Navbar() {
     navigate("/login");
   };
 
+  const isActive = (path) => location.pathname === path;
+
   const navLink = (label, path) => (
     <button
       onClick={() => navigate(path)}
       style={{
         ...styles.navLink,
-        background: location.pathname === path ? "#fff" : "transparent",
-        border:
-          location.pathname === path
-            ? "1px solid #ddd"
-            : "1px solid transparent",
-        fontWeight: location.pathname === path ? "500" : "400",
+        ...(isActive(path) ? styles.navLinkActive : {}),
       }}
     >
       {label}
@@ -38,7 +35,7 @@ function Navbar() {
         {navLink("AI Generator", "/ai-generator")}
       </div>
       <div style={styles.right}>
-        <span style={styles.userLabel}>{user.email}</span>
+        {user.email && <span style={styles.userLabel}>{user.email}</span>}
         <button onClick={handleLogout} style={styles.logoutBtn}>
           Log out
         </button>
@@ -49,30 +46,63 @@ function Navbar() {
 
 const styles = {
   nav: {
-    background: "#f0f0f0",
-    borderBottom: "1px solid #ddd",
-    padding: "10px 24px",
+    background: "#fff",
+    borderBottom: "1px solid #e8e8e8",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "0 24px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    height: "52px",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
   },
-  brand: { fontWeight: "600", fontSize: "15px" },
-  links: { display: "flex", gap: "4px" },
+  brand: {
+    fontWeight: "700",
+    fontSize: "14px",
+    letterSpacing: "0.2px",
+    color: "#1a1a1a",
+    flexShrink: 0,
+  },
+  links: { display: "flex", gap: "2px" },
   navLink: {
     fontSize: "13px",
     padding: "5px 12px",
-    borderRadius: "8px",
+    borderRadius: "6px",
     cursor: "pointer",
     background: "transparent",
+    border: "1px solid transparent",
+    color: "#555",
+    fontWeight: "400",
   },
-  right: { display: "flex", alignItems: "center", gap: "12px" },
-  userLabel: { fontSize: "13px", color: "#666" },
+  navLinkActive: {
+    background: "#EEF4FF",
+    border: "1px solid #D0DEFF",
+    color: "#185FA5",
+    fontWeight: "600",
+  },
+  right: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flexShrink: 0,
+  },
+  userLabel: {
+    fontSize: "12px",
+    color: "#999",
+    maxWidth: "200px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
   logoutBtn: {
-    fontSize: "13px",
+    fontSize: "12px",
     padding: "5px 12px",
-    borderRadius: "8px",
+    borderRadius: "6px",
     border: "1px solid #ddd",
-    background: "#fff",
+    background: "transparent",
+    color: "#555",
     cursor: "pointer",
   },
 };

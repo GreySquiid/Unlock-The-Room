@@ -59,7 +59,7 @@ function AiGenerator() {
     setSaving(true);
     setError("");
     try {
-      await api.post("/Ai/generate-and-save", form);
+      await api.post("/Ai/save-preview", preview);
       setSavedMessage("Level saved successfully! View it in Level Management.");
     } catch {
       setError("Failed to save level. Please try again.");
@@ -381,7 +381,11 @@ function AiGenerator() {
                   </div>
                   <div style={styles.legendItem}>
                     <div
-                      style={{ ...styles.legendDot, background: "#E8E8E8", border: "1px solid #ccc" }}
+                      style={{
+                        ...styles.legendDot,
+                        background: "#E8E8E8",
+                        border: "1px solid #ccc",
+                      }}
                     />
                     <span style={{ color: "#666" }}>White</span>
                   </div>

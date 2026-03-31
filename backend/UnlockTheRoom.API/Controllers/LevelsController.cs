@@ -33,6 +33,7 @@ public class LevelsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Developer")]
     public async Task<IActionResult> Create([FromBody] CreateLevelDto dto)
     {
         var level = await _levelService.CreateLevelAsync(dto);
@@ -40,6 +41,7 @@ public class LevelsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Developer")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateLevelDto dto)
     {
         var level = await _levelService.UpdateLevelAsync(id, dto);
@@ -47,6 +49,8 @@ public class LevelsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Developer")]
+
     public async Task<IActionResult> Delete(int id)
     {
         var success = await _levelService.DeleteLevelAsync(id);
@@ -64,5 +68,13 @@ public class LevelsController : ControllerBase
     {
         var level = await _levelService.GetLevelDetailAsync(id);
         return level == null ? NotFound() : Ok(level);
+    }
+
+    [HttpPut("{id:int}/objects")]
+    [Authorize(Roles = "Developer")]
+    public async Task<IActionResult> UpdateObjects(int id, [FromBody] List<GameObjectDto> objects)
+    {
+        var success = await _levelService.UpdateLevelObjectsAsync(id, objects);
+        return success ? NoContent() : NotFound();
     }
 }

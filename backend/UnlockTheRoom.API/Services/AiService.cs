@@ -146,6 +146,68 @@ public class AiService
             UpdatedAt = level.UpdatedAt
         };
     }
+    public async Task<LevelResponseDto> SaveGeneratedLevelAsync(GeneratedLevelDto generated)
+{
+    var maxOrder = await _context.Levels.AnyAsync()
+        ? await _context.Levels.MaxAsync(l => l.OrderIndex)
+        : -1;
+
+    var level = new Level
+    {
+        Name = generated.Name,
+        Difficulty = generated.Difficulty,
+        Rows = generated.Rows,
+        Columns = generated.Columns,
+        OrderIndex = maxOrder + 1,
+        IsValidated = false,
+        IsPublished = false,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    _context.Levels.Add(level);
+    await _context.SaveChangesAsync();
+
+    foreach (var obj in generated.GameObjects)
+    {
+        if (obj.ObjectType == "SpawnPoint") continue;
+
+        GameObject gameObject = obj.ObjectType switch
+        {
+            "Key" => new Key { Color = obj.Color ?? "Red", IsCollected = false },
+            "Barrier" => new Barrier { RequiredKeyColor = obj.Color ?? "Red", IsUnlocked = false },
+            "Button" => new Models.Button { IsActivated = false, TargetObjectType = "Barrier" },
+            "Hazard" => new Hazard { HazardType = obj.HazardType ?? "Spike" },
+            "Platform" => new Hazard { HazardType = "Platform" },
+            "ExitDoor" => new ExitDoor { IsUnlocked = false },
+            _ => new Hazard { HazardType = "Generic" }
+        };
+
+        gameObject.Level = level;
+        gameObject.X = obj.PositionX;
+        gameObject.Y = obj.PositionY;
+        gameObject.Width = obj.Width;
+        gameObject.Height = obj.Height;
+        gameObject.ObjectType = obj.ObjectType == "Platform" ? "Hazard" : obj.ObjectType;
+
+        _context.GameObjects.Add(gameObject);
+    }
+
+    await _context.SaveChangesAsync();
+
+    return new LevelResponseDto
+    {
+        Id = level.Id,
+        Name = level.Name,
+        Difficulty = level.Difficulty,
+        Rows = level.Rows,
+        Columns = level.Columns,
+        IsValidated = level.IsValidated,
+        IsPublished = level.IsPublished,
+        CreatedAt = level.CreatedAt,
+        UpdatedAt = level.UpdatedAt
+    };
+}
 
     private static List<string> GetRegularColors(int keyCount)
     {

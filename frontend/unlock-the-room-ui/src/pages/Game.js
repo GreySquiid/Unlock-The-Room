@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import MainMenu from "../components/game/MainMenu";
 import LevelSelect from "../components/game/LevelSelect";
 import GameCanvas from "../components/game/GameCanvas.js";
@@ -21,10 +22,18 @@ function Game() {
     const saved = localStorage.getItem("gameSettings");
     return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
   });
+  const location = useLocation();
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setPlayer(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
+    if (location.state?.autoPlay) {
+      setSelectedLevel(location.state.autoPlay);
+      setScreen("game");
+    }
   }, []);
 
   const updateSettings = (newSettings) => {

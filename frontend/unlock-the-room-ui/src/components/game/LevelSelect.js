@@ -68,30 +68,42 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
           {levels.map((level, index) => {
             const unlocked = !player || isUnlocked(index);
             return (
-              <div
+              <LevelCard
                 key={level.id}
-                style={{
-                  ...styles.levelCard,
-                  ...(unlocked ? {} : styles.levelLocked),
-                }}
-                onClick={() => unlocked && onPlay(level)}
-              >
-                <div style={styles.levelNumber}>{index + 1}</div>
-                <p style={styles.levelName}>{level.name}</p>
-                <p
-                  style={{
-                    ...styles.levelDiff,
-                    color: diffColor(level.difficulty),
-                  }}
-                >
-                  {level.difficulty}
-                </p>
-                {!unlocked && <div style={styles.lockOverlay}>🔒</div>}
-              </div>
+                level={level}
+                index={index}
+                unlocked={unlocked}
+                diffColor={diffColor}
+                onPlay={onPlay}
+              />
             );
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function LevelCard({ level, index, unlocked, diffColor, onPlay }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      style={{
+        ...styles.levelCard,
+        ...(unlocked ? {} : styles.levelLocked),
+        ...(hovered && unlocked ? styles.levelCardHover : {}),
+      }}
+      onClick={() => unlocked && onPlay(level)}
+      onMouseEnter={() => unlocked && setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={styles.levelNumber}>{index + 1}</div>
+      <p style={styles.levelName}>{level.name}</p>
+      <p style={{ ...styles.levelDiff, color: diffColor(level.difficulty) }}>
+        {level.difficulty}
+      </p>
+      {!unlocked && <div style={styles.lockOverlay}>&#x1F512;</div>}
     </div>
   );
 }
@@ -104,74 +116,92 @@ const styles = {
     padding: "2rem",
   },
   card: {
-    background: "#2a2a3e",
-    border: "1px solid #444",
+    background: "#1e1e32",
+    border: "1px solid #333350",
     borderRadius: "16px",
     padding: "2rem",
     width: "560px",
     maxHeight: "80vh",
     overflowY: "auto",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "1rem",
+    marginBottom: "1.25rem",
   },
-  title: { color: "#fff", fontSize: "22px", fontWeight: "600", margin: 0 },
+  title: {
+    color: "#e8e8e8",
+    fontSize: "20px",
+    fontWeight: "700",
+    margin: 0,
+    letterSpacing: "0.3px",
+  },
   notice: {
-    fontSize: "13px",
-    color: "#888",
-    marginBottom: "1rem",
-    padding: "8px 12px",
-    background: "#1a1a2e",
+    fontSize: "12px",
+    color: "#6a6a8a",
+    marginBottom: "1.25rem",
+    padding: "9px 12px",
+    background: "#16162a",
     borderRadius: "8px",
-    border: "1px solid #333",
+    border: "1px solid #2a2a44",
   },
   message: {
-    color: "#888",
+    color: "#5a5a7a",
     textAlign: "center",
     padding: "2rem 0",
     fontSize: "14px",
   },
-  grid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "10px",
+  },
   levelCard: {
-    background: "#1a1a2e",
-    border: "1px solid #444",
+    background: "#16162a",
+    border: "1px solid #2e2e4a",
     borderRadius: "10px",
     padding: "14px 10px",
     textAlign: "center",
     cursor: "pointer",
     position: "relative",
-    transition: "border-color 0.15s",
+    transition: "border-color 0.15s, background 0.15s, box-shadow 0.15s",
   },
-  levelLocked: { opacity: 0.4, cursor: "not-allowed" },
+  levelCardHover: {
+    background: "#1e1e38",
+    border: "1px solid #534AB7",
+    boxShadow: "0 0 12px rgba(83,74,183,0.25)",
+  },
+  levelLocked: { opacity: 0.35, cursor: "not-allowed" },
   levelNumber: {
-    fontSize: "20px",
-    fontWeight: "700",
+    fontSize: "22px",
+    fontWeight: "800",
     color: "#7F77DD",
-    marginBottom: "4px",
+    marginBottom: "5px",
   },
   levelName: {
-    fontSize: "11px",
-    color: "#ccc",
+    fontSize: "10px",
+    color: "#aaa",
     margin: "0 0 4px",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    letterSpacing: "0.2px",
   },
-  levelDiff: { fontSize: "11px", fontWeight: "500", margin: 0 },
+  levelDiff: { fontSize: "10px", fontWeight: "600", margin: 0 },
   lockOverlay: {
     position: "absolute",
     top: "6px",
     right: "8px",
-    fontSize: "12px",
+    fontSize: "11px",
+    opacity: 0.6,
   },
   backBtn: {
     padding: "6px 14px",
     background: "transparent",
-    color: "#888",
-    border: "1px solid #444",
+    color: "#666",
+    border: "1px solid #333",
     borderRadius: "8px",
     fontSize: "13px",
     cursor: "pointer",

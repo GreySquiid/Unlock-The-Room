@@ -44,4 +44,18 @@ public class AiController : ControllerBase
             return StatusCode(500, $"AI generation failed: {ex.Message}");
         }
     }
+    [HttpPost("save-preview")]
+    [Authorize]
+    public async Task<IActionResult> SavePreview([FromBody] GeneratedLevelDto preview)
+    {
+        try
+        {
+            var level = await _aiService.SaveGeneratedLevelAsync(preview);
+            return CreatedAtAction("GetById", "Levels", new { id = level.Id }, level);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Failed to save level: {ex.Message}");
+        }
+    }
 }

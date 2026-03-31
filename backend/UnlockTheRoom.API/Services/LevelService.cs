@@ -110,6 +110,46 @@ public class LevelService
         }
         await _context.SaveChangesAsync();
     }
+    public async Task<bool> UpdateLevelObjectsAsync(int id, List<GameObjectDto> objects)
+    {
+        var level = await _context.Levels
+            .Include(l => l.GameObjects)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (level == null) return false;
+
+        _context.GameObjects.RemoveRange(level.GameObjects);
+
+        foreach (var obj in objects)
+        {
+            GameObject gameObject = obj.ObjectType switch
+            {
+                "Key" => new Key { Color = obj.Color ?? "Red", IsCollected = false },
+                "Barrier" => new UnlockTheRoom.API.Models.Barrier { RequiredKeyColor = obj.Color ?? "Red", IsUnlocked = false },
+                "Button" => new Models.Button { IsActivated = false, TargetObjectType = "Barrier" },
+                "Hazard" => new Hazard { HazardType = obj.HazardType ?? "Spike" },
+                "Platform" => new Hazard { HazardType = "Platform" },
+                "KillBrick" => new Hazard { HazardType = "KillBrick" },
+                "SpawnPoint" => new Hazard { HazardType = "SpawnPoint" },
+                "ExitDoor" => new ExitDoor { IsUnlocked = false },
+                _ => new Hazard { HazardType = "Generic" }
+            };
+
+            gameObject.Level = level;
+            gameObject.X = obj.PositionX;
+            gameObject.Y = obj.PositionY;
+            gameObject.Width = obj.Width;
+            gameObject.Height = obj.Height;
+            gameObject.ObjectType = (obj.ObjectType == "Platform" || obj.ObjectType == "KillBrick" || obj.ObjectType == "SpawnPoint") ? "Hazard" : obj.ObjectType;
+
+            _context.GameObjects.Add(gameObject);
+        }
+
+        level.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<LevelDetailDto?> GetLevelDetailAsync(int id)
     {
         var level = await _context.Levels
@@ -132,7 +172,7 @@ public class LevelService
             GameObjects = level.GameObjects.Select(g => new GameObjectDto
             {
                 Id = g.Id,
-                ObjectType = g.ObjectType,
+                ObjectType = (g is Hazard spH && spH.HazardType == "SpawnPoint") ? "SpawnPoint" : g.ObjectType,
                 PositionX = (int)g.X,
                 PositionY = (int)g.Y,
                 Width = (int)g.Width,
