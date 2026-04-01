@@ -14,7 +14,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/levels" element={<Levels />} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/game" />} />
         <Route path="/ai-generator" element={<AiGenerator />} />
         <Route path="/game" element={<Game />} />
       </Routes>

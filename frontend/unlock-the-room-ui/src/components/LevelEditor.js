@@ -494,7 +494,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
               </>
             )}
 
-            {(tool === "Hazard" || tool === "KillBrick") && (
+            {tool === "Hazard" && (
               <>
                 <p style={{ ...styles.sidebarSection, marginTop: "14px" }}>Hazard type</p>
                 <p style={styles.staticValue}>Spike</p>
@@ -512,7 +512,23 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
               </>
             )}
 
-            {tool !== "KillBrick" && (
+            {tool === "KillBrick" && (
+              <>
+                <p style={{ ...styles.sidebarSection, marginTop: "14px" }}>Rotation</p>
+                <select
+                  style={{ ...styles.sizeInput, width: "100%", marginTop: "4px" }}
+                  value={selectedRotation}
+                  onChange={(e) => setSelectedRotation(parseInt(e.target.value))}
+                >
+                  <option value={0}>0° (bottom half)</option>
+                  <option value={90}>90° (right half)</option>
+                  <option value={180}>180° (top half)</option>
+                  <option value={270}>270° (left half)</option>
+                </select>
+              </>
+            )}
+
+            {true && (
               <>
                 <p style={{ ...styles.sidebarSection, marginTop: "14px" }}>Size</p>
                 <div style={styles.sizeRow}>
