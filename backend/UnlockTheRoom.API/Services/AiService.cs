@@ -25,6 +25,8 @@ public class AiService
 
     public async Task<GeneratedLevelDto> GenerateLevelAsync(GenerateLevelRequestDto request)
     {
+        if (string.IsNullOrWhiteSpace(request.LevelName))
+            request.LevelName = await GenerateUniqueLevelName();
         var prompt = BuildPrompt(request);
         var apiKey = _configuration["Anthropic:ApiKey"];
         var model = _configuration["Anthropic:Model"] ?? "claude-3-5-haiku-20241022";
@@ -215,34 +217,15 @@ public class AiService
         return allColors.Take(keyCount).ToList();
     }
 
-    private static string GenerateUniqueLevelName(string difficulty)
+    private async Task<string> GenerateUniqueLevelName()
     {
-        var adjectives = new List<string>
-        {
-            "Crimson", "Azure", "Gilded", "Shadow", "Frozen",
-            "Neon", "Obsidian", "Amber", "Verdant", "Ivory",
-            "Cobalt", "Scarlet", "Emerald", "Violet", "Copper",
-            "Ashen", "Sapphire", "Onyx", "Bronze", "Silver"
-        };
-        var nouns = new List<string>
-        {
-            "Descent", "Vault", "Labyrinth", "Sanctum", "Passage",
-            "Chamber", "Corridor", "Ascent", "Hollow", "Citadel",
-            "Depths", "Summit", "Bastion", "Threshold", "Archive",
-            "Nexus", "Expanse", "Reaches", "Stronghold", "Refuge"
-        };
-
-        var rng = new Random();
-        var adj = adjectives[rng.Next(adjectives.Count)];
-        var noun = nouns[rng.Next(nouns.Count)];
-        return $"{adj} {noun}";
+        var count = await _context.Levels.CountAsync();
+        return $"Level {(count + 1):D2}";
     }
 
     private static string BuildPrompt(GenerateLevelRequestDto request)
     {
-        var levelName = string.IsNullOrWhiteSpace(request.LevelName)
-            ? GenerateUniqueLevelName(request.Difficulty)
-            : request.LevelName;
+        var levelName = request.LevelName ?? "Level";
         int groundRow = request.Rows - 1;
         int rightWall = request.Columns - 1;
         int spawnX = 2;
