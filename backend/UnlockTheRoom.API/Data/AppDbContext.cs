@@ -26,6 +26,12 @@ public class AppDbContext : DbContext
             .HasValue<Hazard>("Hazard")
             .HasValue<ExitDoor>("ExitDoor");
 
+        modelBuilder.Entity<GameObject>()
+            .HasOne(g => g.Level)
+            .WithMany(l => l.GameObjects)
+            .HasForeignKey("LevelId")
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<Score>()
             .HasOne(s => s.User)
             .WithMany(u => u.Scores)

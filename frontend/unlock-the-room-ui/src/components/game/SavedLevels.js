@@ -4,9 +4,17 @@ import api from "../../services/api";
 function SavedLevels({ player, onPlay, onBack }) {
   const [saved, setSaved] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leaderboard, setLeaderboard] = useState({});
 
   useEffect(() => {
     if (player) fetchSaved();
+    api.get('/Scores/leaderboard?take=100').then(res => {
+      const best = {};
+      res.data.forEach(score => {
+        if (!best[score.levelId]) best[score.levelId] = score;
+      });
+      setLeaderboard(best);
+    }).catch(() => {});
   }, [player]);
 
   const fetchSaved = async () => {
@@ -61,7 +69,8 @@ function SavedLevels({ player, onPlay, onBack }) {
               <div>
                 <p style={styles.levelName}>{item.levelName}</p>
                 <p style={styles.levelMeta}>
-                  {item.difficulty} · {item.rows} × {item.columns}
+                  {item.difficulty}
+                  {leaderboard[item.levelId] ? ` · Best: ${leaderboard[item.levelId].formattedTime}` : ''}
                 </p>
               </div>
               <div style={styles.rowActions}>

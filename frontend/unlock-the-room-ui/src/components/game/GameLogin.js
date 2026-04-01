@@ -1,13 +1,56 @@
 import { useState } from "react";
 import api from "../../services/api";
 
-function GameLogin({ onLogin, onBack }) {
+function GameLogin({ player, onLogin, onLogout, onBack }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (player) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <h2 style={styles.title}>My Account</h2>
+          <p style={styles.subtitle}>Logged in as</p>
+          <p
+            style={{
+              color: "#fff",
+              fontSize: "16px",
+              fontWeight: "600",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {player.username || player.email}
+          </p>
+          <button style={styles.submitBtn} onClick={onLogout}>
+            Log out
+          </button>
+          {(player.role === 'Developer' || player.Role === 'Developer') && (
+            <button
+              style={{ ...styles.submitBtn, background: '#185FA5', marginTop: '8px' }}
+              onClick={() => window.open('/dashboard', '_blank')}
+            >
+              Developer dashboard
+            </button>
+          )}
+          <button
+            style={{
+              ...styles.submitBtn,
+              background: "transparent",
+              border: "1px solid #444",
+              marginTop: "8px",
+            }}
+            onClick={onBack}
+          >
+            Back to menu
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

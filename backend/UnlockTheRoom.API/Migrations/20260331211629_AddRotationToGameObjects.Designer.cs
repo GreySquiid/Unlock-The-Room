@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using UnlockTheRoom.API.Data;
@@ -11,9 +12,11 @@ using UnlockTheRoom.API.Data;
 namespace UnlockTheRoom.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331211629_AddRotationToGameObjects")]
+    partial class AddRotationToGameObjects
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -272,8 +275,7 @@ namespace UnlockTheRoom.API.Migrations
                 {
                     b.HasOne("UnlockTheRoom.API.Models.Level", "Level")
                         .WithMany("GameObjects")
-                        .HasForeignKey("LevelId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("LevelId");
 
                     b.Navigation("Level");
                 });

@@ -26,7 +26,6 @@ function AiGenerator() {
     columns: 24,
     keyCount: 3,
     includeHazards: true,
-    includeMovingPlatforms: false,
     levelName: "",
   });
   const [preview, setPreview] = useState(null);
@@ -252,22 +251,6 @@ function AiGenerator() {
                   }
                 />
                 Include hazards (spikes / kill bricks)
-              </label>
-            </div>
-
-            <div style={styles.checkboxRow}>
-              <label style={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={form.includeMovingPlatforms}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      includeMovingPlatforms: e.target.checked,
-                    })
-                  }
-                />
-                Include moving platforms
               </label>
             </div>
 

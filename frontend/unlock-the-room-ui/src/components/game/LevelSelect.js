@@ -5,10 +5,12 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completedIds, setCompletedIds] = useState([]);
+  const [leaderboard, setLeaderboard] = useState({});
 
   useEffect(() => {
     fetchLevels();
     if (player) fetchScores();
+    fetchLeaderboard();
   }, [player]);
 
   const fetchLevels = async () => {
@@ -31,6 +33,19 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
     }
   };
 
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await api.get("/Scores/leaderboard?take=100");
+      const best = {};
+      res.data.forEach((score) => {
+        if (!best[score.levelId]) best[score.levelId] = score;
+      });
+      setLeaderboard(best);
+    } catch {
+      setLeaderboard({});
+    }
+  };
+
   const isUnlocked = (index) => {
     if (index === 0) return true;
     return completedIds.includes(levels[index - 1]?.id);
@@ -49,7 +64,7 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
         <div style={styles.header}>
           <h2 style={styles.title}>Select Level</h2>
           <button style={styles.backBtn} onClick={onBack}>
-            Back
+            Menu
           </button>
         </div>
 
@@ -75,6 +90,7 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
                 unlocked={unlocked}
                 diffColor={diffColor}
                 onPlay={onPlay}
+                bestScore={leaderboard[level.id]}
               />
             );
           })}
@@ -84,7 +100,7 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
   );
 }
 
-function LevelCard({ level, index, unlocked, diffColor, onPlay }) {
+function LevelCard({ level, index, unlocked, diffColor, onPlay, bestScore }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -103,6 +119,11 @@ function LevelCard({ level, index, unlocked, diffColor, onPlay }) {
       <p style={{ ...styles.levelDiff, color: diffColor(level.difficulty) }}>
         {level.difficulty}
       </p>
+      {bestScore && (
+        <p style={{ fontSize: "10px", color: "#7F77DD", margin: "4px 0 0", fontVariantNumeric: "tabular-nums" }}>
+          Best: {bestScore.formattedTime}
+        </p>
+      )}
       {!unlocked && <div style={styles.lockOverlay}>&#x1F512;</div>}
     </div>
   );

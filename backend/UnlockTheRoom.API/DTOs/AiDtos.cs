@@ -6,7 +6,6 @@ public class GenerateLevelRequestDto
     public int Rows { get; set; } = 12;
     public int Columns { get; set; } = 16;
     public int KeyCount { get; set; } = 3;
-    public bool IncludeMovingPlatforms { get; set; } = false;
     public bool IncludeHazards { get; set; } = true;
     public string? LevelName { get; set; }
 }

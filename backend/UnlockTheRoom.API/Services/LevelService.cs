@@ -77,10 +77,19 @@ public class LevelService
 
     public async Task<bool> DeleteLevelAsync(int id)
     {
-        var level = await _context.Levels.FindAsync(id);
+        var level = await _context.Levels
+            .Include(l => l.GameObjects)
+            .Include(l => l.Scores)
+            .Include(l => l.SavedLevels)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
         if (level == null) return false;
 
+        _context.GameObjects.RemoveRange(level.GameObjects);
+        _context.Scores.RemoveRange(level.Scores);
+        _context.SavedLevels.RemoveRange(level.SavedLevels);
         _context.Levels.Remove(level);
+
         await _context.SaveChangesAsync();
         return true;
     }
@@ -141,6 +150,7 @@ public class LevelService
             gameObject.Width = obj.Width;
             gameObject.Height = obj.Height;
             gameObject.ObjectType = (obj.ObjectType == "Platform" || obj.ObjectType == "KillBrick" || obj.ObjectType == "SpawnPoint") ? "Hazard" : obj.ObjectType;
+            gameObject.Rotation = obj.Rotation;
 
             _context.GameObjects.Add(gameObject);
         }
@@ -178,7 +188,8 @@ public class LevelService
                 Width = (int)g.Width,
                 Height = (int)g.Height,
                 Color = g is Key k ? k.Color : g is Models.Barrier b ? b.RequiredKeyColor : null,
-                HazardType = g is Hazard h ? h.HazardType : null
+                HazardType = g is Hazard h ? h.HazardType : null,
+                Rotation = g.Rotation
             }).ToList()
         };
     }

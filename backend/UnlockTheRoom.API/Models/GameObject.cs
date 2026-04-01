@@ -8,7 +8,8 @@ public abstract class GameObject
     public float Width { get; set; }
     public float Height { get; set; }
     public string ObjectType { get; set; } = string.Empty;
-    
+    public int Rotation { get; set; } = 0;
+
     public virtual Level? Level { get; set; }
     
     public abstract string GetObjectDescription();

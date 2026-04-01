@@ -43,6 +43,7 @@ public class GameObjectDto
     public int Height { get; set; }
     public string? Color { get; set; }
     public string? HazardType { get; set; }
+    public int Rotation { get; set; } = 0;
 }
 
 public class LevelDetailDto : LevelResponseDto

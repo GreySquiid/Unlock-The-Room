@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import api from "../services/api";
 import MainMenu from "../components/game/MainMenu";
 import LevelSelect from "../components/game/LevelSelect";
 import GameCanvas from "../components/game/GameCanvas.js";
@@ -18,6 +19,7 @@ function Game() {
   const [screen, setScreen] = useState("menu");
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [player, setPlayer] = useState(null);
+  const [publishedLevels, setPublishedLevels] = useState([]);
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem("gameSettings");
     return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
@@ -27,6 +29,10 @@ function Game() {
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setPlayer(JSON.parse(stored));
+
+    api.get('/Levels').then(res => {
+      setPublishedLevels(res.data.filter(l => l.isPublished));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -61,7 +67,14 @@ function Game() {
   };
 
   const handleLevelComplete = (timeSeconds) => {
-    setScreen("levelSelect");
+    const currentIndex = publishedLevels.findIndex(l => l.id === selectedLevel?.id);
+    const nextLevel = publishedLevels[currentIndex + 1];
+    if (nextLevel) {
+      setSelectedLevel(nextLevel);
+      setScreen("game");
+    } else {
+      setScreen("levelSelect");
+    }
   };
 
   const renderScreen = () => {
@@ -85,12 +98,19 @@ function Game() {
             settings={settings}
             onComplete={handleLevelComplete}
             onMenu={() => setScreen("menu")}
+            onLevelSelect={() => setScreen("levelSelect")}
           />
         );
       case "login":
         return (
-          <GameLogin onLogin={handleLogin} onBack={() => setScreen("menu")} />
+          <GameLogin
+            player={player}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            onBack={() => setScreen("menu")}
+          />
         );
+
       case "savedLevels":
         return (
           <SavedLevels

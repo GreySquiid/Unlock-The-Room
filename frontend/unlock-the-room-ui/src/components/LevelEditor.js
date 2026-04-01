@@ -77,6 +77,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
   const [tool, setTool] = useState("Platform");
   const [color, setColor] = useState("Red");
   const [hazardType] = useState("Spike");
+  const [selectedRotation, setSelectedRotation] = useState(0);
   const [width, setWidth] = useState(1);
   const [height, setHeight] = useState(1);
 
@@ -160,6 +161,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
         height,
         color: tool === "Key" || tool === "Barrier" ? color : null,
         hazardType: tool === "Hazard" ? hazardType : null,
+        rotation: (tool === "Hazard" || tool === "KillBrick") ? selectedRotation : 0,
       };
 
       pushHistory(currentObjects);
@@ -263,6 +265,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
             : o.objectType === "KillBrick"
             ? "KillBrick"
             : o.hazardType,
+        rotation: o.rotation || 0,
       }));
       await api.put(`/Levels/${level.id}/objects`, payload);
       setSaveMsg("Saved!");
@@ -448,7 +451,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                     ...styles.typeBtn,
                     ...(tool === t ? styles.typeBtnActive : {}),
                   }}
-                  onClick={() => setTool(t)}
+                  onClick={() => { setTool(t); if (t !== "Hazard" && t !== "KillBrick") setSelectedRotation(0); }}
                 >
                   <span
                     style={{
@@ -460,7 +463,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                       opacity: t === "Barrier" ? 0.7 : 1,
                     }}
                   />
-                  {t}
+                  {t === "Hazard" ? "Spike" : t}
                 </button>
               ))}
             </div>
@@ -491,10 +494,21 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
               </>
             )}
 
-            {tool === "Hazard" && (
+            {(tool === "Hazard" || tool === "KillBrick") && (
               <>
                 <p style={{ ...styles.sidebarSection, marginTop: "14px" }}>Hazard type</p>
                 <p style={styles.staticValue}>Spike</p>
+                <p style={{ ...styles.sidebarSection, marginTop: "14px" }}>Rotation</p>
+                <select
+                  style={{ ...styles.sizeInput, width: "100%", marginTop: "4px" }}
+                  value={selectedRotation}
+                  onChange={(e) => setSelectedRotation(parseInt(e.target.value))}
+                >
+                  <option value={0}>0° (up)</option>
+                  <option value={90}>90° (right)</option>
+                  <option value={180}>180° (down)</option>
+                  <option value={270}>270° (left)</option>
+                </select>
               </>
             )}
 
@@ -538,7 +552,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                 { label: "Platform", color: "#4a4a6a" },
                 { label: "Key", color: "#EF9F27" },
                 { label: "Barrier", color: "#378ADD", opacity: 0.7 },
-                { label: "Hazard (spike)", color: "#888" },
+                { label: "Spike", color: "#888" },
                 { label: "Kill Brick", color: "#C0392B" },
                 { label: "Exit Door", color: "#1D9E75" },
                 { label: "Spawn", color: "#378ADD" },
@@ -556,11 +570,11 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
               ))}
             </div>
 
-            <p style={styles.hint}>
-              Left-click: place &nbsp;·&nbsp; Right-click: delete
-              <br />
-              Drag existing object to move
-            </p>
+            <div style={{ fontSize: '11px', color: '#999', lineHeight: '1.8', marginTop: '8px' }}>
+              <div>Left-click: place</div>
+              <div>Right-click: delete</div>
+              <div>Drag existing object to move</div>
+            </div>
           </div>
 
           {/* Grid */}
@@ -674,19 +688,33 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                     return blended ? "none" : "1px solid rgba(0,0,0,0.2)";
                   };
 
-                  // Extend by 1px in blended directions to ensure the SVG grid
-                  // line is fully covered at sub-pixel boundaries.
-                  const objTop  = isKillBrick ? obj.positionY * CELL + CELL / 2 : obj.positionY * CELL;
-                  const objH    = isKillBrick ? CELL / 2 : h;
+                  // KillBrick position depends on rotation: bottom/top half or left/right half
+                  let objLeft = obj.positionX * CELL;
+                  let objTop, objW, objH;
+                  if (isKillBrick) {
+                    const rot = obj.rotation || 0;
+                    if (rot === 180) {       // top half
+                      objTop = obj.positionY * CELL; objW = w; objH = CELL / 2;
+                    } else if (rot === 90) { // right half
+                      objLeft = obj.positionX * CELL + CELL / 2;
+                      objTop = obj.positionY * CELL; objW = CELL / 2; objH = h;
+                    } else if (rot === 270) { // left half
+                      objTop = obj.positionY * CELL; objW = CELL / 2; objH = h;
+                    } else {                 // 0° = bottom half
+                      objTop = obj.positionY * CELL + CELL / 2; objW = w; objH = CELL / 2;
+                    }
+                  } else {
+                    objTop = obj.positionY * CELL; objW = w; objH = h;
+                  }
 
                   return (
                     <div
                       key={i}
                       style={{
                         position: "absolute",
-                        left: obj.positionX * CELL,
+                        left: objLeft,
                         top: objTop,
-                        width:  w    + (blendRight  ? 1 : 0),
+                        width:  objW + (blendRight  ? 1 : 0),
                         height: objH + (blendBottom ? 1 : 0),
                         background: bg,
                         opacity: isBarrier ? 0.7 : isDragging ? 0.5 : 1,
@@ -710,11 +738,18 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                           height={CELL}
                           style={{ position: "absolute", top: 0, left: 0 }}
                         >
-                          <polygon
-                            points={`2,${CELL} ${CELL / 2},2 ${CELL - 2},${CELL}`}
-                            fill="#aaa"
-                          />
+                          <g transform={`rotate(${obj.rotation || 0}, ${CELL / 2}, ${CELL / 2})`}>
+                            <polygon
+                              points={`2,${CELL} ${CELL / 2},2 ${CELL - 2},${CELL}`}
+                              fill="#aaa"
+                            />
+                          </g>
                         </svg>
+                      )}
+                      {isSpike && (obj.rotation || 0) !== 0 && (
+                        <span style={{ position: "absolute", bottom: 1, right: 2, fontSize: "7px", color: "#aaa", lineHeight: 1 }}>
+                          {obj.rotation}°
+                        </span>
                       )}
                       <span style={styles.cellLabel}>{cellLabel(obj)}</span>
                     </div>
