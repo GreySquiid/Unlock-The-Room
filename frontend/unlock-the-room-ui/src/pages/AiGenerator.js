@@ -27,6 +27,9 @@ function AiGenerator() {
     keyCount: 3,
     includeHazards: true,
     levelName: "",
+    layoutArchetype: "",
+    layoutDensity: "Moderate",
+    campaignRole: "",
   });
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -82,7 +85,7 @@ function AiGenerator() {
         for (let c = 0; c < obj.width; c++) {
           const row = obj.positionY + r;
           const col = obj.positionX + c;
-          if (row < level.rows && col < level.columns) {
+          if (row >= 0 && col >= 0 && row < level.rows && col < level.columns) {
             grid[row][col] = obj;
           }
         }
@@ -254,6 +257,54 @@ function AiGenerator() {
               </label>
             </div>
 
+            <p style={{ ...styles.sectionLabel, marginTop: "4px" }}>Design style</p>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Layout archetype</label>
+              <select
+                style={styles.input}
+                value={form.layoutArchetype}
+                onChange={(e) => setForm({ ...form, layoutArchetype: e.target.value })}
+              >
+                <option value="">(Random)</option>
+                <option value="ExitTower">Exit Tower</option>
+                <option value="LongBaseRoute">Long Base Route</option>
+                <option value="ChamberPuzzle">Chamber Puzzle</option>
+                <option value="SnakeCorridor">Snake Corridor</option>
+                <option value="OpenMinimalist">Open Minimalist</option>
+                <option value="SplitVerticalGates">Split Vertical Gates</option>
+              </select>
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Layout density</label>
+              <select
+                style={styles.input}
+                value={form.layoutDensity}
+                onChange={(e) => setForm({ ...form, layoutDensity: e.target.value })}
+              >
+                <option value="Sparse">Sparse</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Dense">Dense</option>
+              </select>
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Campaign role</label>
+              <select
+                style={styles.input}
+                value={form.campaignRole}
+                onChange={(e) => setForm({ ...form, campaignRole: e.target.value })}
+              >
+                <option value="">(Auto from difficulty)</option>
+                <option value="Tutorial">Tutorial</option>
+                <option value="Early">Early</option>
+                <option value="Mid">Mid</option>
+                <option value="Late">Late</option>
+                <option value="Challenge">Challenge</option>
+              </select>
+            </div>
+
             <button
               style={{ ...styles.generateBtn, opacity: loading ? 0.7 : 1 }}
               type="submit"
@@ -293,6 +344,9 @@ function AiGenerator() {
                       {preview.difficulty} · {preview.rows} × {preview.columns}{" "}
                       grid · {preview.gameObjects.length} objects
                     </p>
+                    {preview.archetype && (
+                      <span style={styles.archetypeBadge}>{preview.archetype}</span>
+                    )}
                   </div>
                   <div style={styles.previewActions}>
                     <button
@@ -313,6 +367,15 @@ function AiGenerator() {
                 </div>
 
                 {savedMessage && <p style={styles.success}>{savedMessage}</p>}
+
+                {preview.validationWarnings && preview.validationWarnings.length > 0 && (
+                  <div style={styles.warnings}>
+                    <p style={styles.warningsLabel}>Design token warnings</p>
+                    {preview.validationWarnings.map((w, i) => (
+                      <p key={i} style={styles.warningItem}>⚠ {w}</p>
+                    ))}
+                  </div>
+                )}
 
                 <div style={styles.gridWrap}>{renderGrid(preview)}</div>
 
@@ -524,6 +587,39 @@ const styles = {
     fontSize: "12px",
     fontWeight: "500",
     cursor: "pointer",
+  },
+  archetypeBadge: {
+    display: "inline-block",
+    marginTop: "5px",
+    padding: "2px 8px",
+    background: "#EEF0FB",
+    color: "#534AB7",
+    border: "1px solid #C9C5F0",
+    borderRadius: "99px",
+    fontSize: "11px",
+    fontWeight: "600",
+    letterSpacing: "0.3px",
+  },
+  warnings: {
+    background: "#FFFBEA",
+    border: "1px solid #F0D060",
+    borderRadius: "8px",
+    padding: "10px 12px",
+    marginBottom: "12px",
+  },
+  warningsLabel: {
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "#7A6010",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    marginBottom: "6px",
+  },
+  warningItem: {
+    fontSize: "12px",
+    color: "#6B4F00",
+    margin: "3px 0 0",
+    lineHeight: "1.5",
   },
   gridWrap: { marginBottom: "1rem" },
   legend: {

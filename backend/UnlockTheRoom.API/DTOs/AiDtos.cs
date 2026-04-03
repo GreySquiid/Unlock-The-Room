@@ -8,6 +8,11 @@ public class GenerateLevelRequestDto
     public int KeyCount { get; set; } = 3;
     public bool IncludeHazards { get; set; } = true;
     public string? LevelName { get; set; }
+
+    // Design system — all optional; defaults are resolved by AiService
+    public string? LayoutArchetype { get; set; }   // ExitTower | LongBaseRoute | ChamberPuzzle | SnakeCorridor | OpenMinimalist | SplitVerticalGates
+    public string LayoutDensity { get; set; } = "Moderate";   // Sparse | Moderate | Dense
+    public string? CampaignRole { get; set; }      // Tutorial | Early | Mid | Late | Challenge (inferred from Difficulty if null)
 }
 
 public class GeneratedGameObjectDto
@@ -49,4 +54,7 @@ public class GeneratedLevelDto
     public List<GeneratedGatePlanEntryDto> GatePlan { get; set; } = new();
     public List<GeneratedGameObjectDto> GameObjects { get; set; } = new();
     public string AiReasoning { get; set; } = string.Empty;
+    // Set by AiService after generation — not part of the AI response
+    public string Archetype { get; set; } = string.Empty;
+    public List<string> ValidationWarnings { get; set; } = new();
 }

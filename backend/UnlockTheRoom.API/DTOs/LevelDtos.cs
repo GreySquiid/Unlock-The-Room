@@ -15,6 +15,7 @@ public class UpdateLevelDto
     public int Rows { get; set; }
     public int Columns { get; set; }
     public bool IsPublished { get; set; }
+    public bool IsValidated { get; set; }
 }
 
 public class LevelResponseDto
@@ -28,6 +29,7 @@ public class LevelResponseDto
     public bool IsPublished { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public string? GeneratedArchetype { get; set; }
 }
 public class ReorderLevelsDto
 {

@@ -69,6 +69,7 @@ public class LevelService
         level.Rows = dto.Rows;
         level.Columns = dto.Columns;
         level.IsPublished = dto.IsPublished;
+        level.IsValidated = dto.IsValidated;
         level.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -104,7 +105,8 @@ public class LevelService
         IsValidated = level.IsValidated,
         IsPublished = level.IsPublished,
         CreatedAt = level.CreatedAt,
-        UpdatedAt = level.UpdatedAt
+        UpdatedAt = level.UpdatedAt,
+        GeneratedArchetype = level.GeneratedArchetype
     };
     public async Task ReorderLevelsAsync(ReorderLevelsDto dto)
     {

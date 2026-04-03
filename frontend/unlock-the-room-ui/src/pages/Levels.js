@@ -104,6 +104,19 @@ function Levels() {
       rows: level.rows,
       columns: level.columns,
       isPublished: !level.isPublished,
+      isValidated: level.isValidated,
+    });
+    fetchLevels();
+  };
+
+  const toggleValidate = async (level) => {
+    await api.put(`/Levels/${level.id}`, {
+      name: level.name,
+      difficulty: level.difficulty,
+      rows: level.rows,
+      columns: level.columns,
+      isPublished: level.isPublished,
+      isValidated: !level.isValidated,
     });
     fetchLevels();
   };
@@ -450,6 +463,15 @@ function Levels() {
                     onClick={() => togglePublish(level)}
                   >
                     {level.isPublished ? "Unpublish" : "Publish"}
+                  </button>
+                  <button
+                    style={{
+                      ...styles.actionBtn,
+                      color: level.isValidated ? "#854F0B" : "#185FA5",
+                    }}
+                    onClick={() => toggleValidate(level)}
+                  >
+                    {level.isValidated ? "Invalidate" : "Validate"}
                   </button>
                   <button
                     style={{ ...styles.actionBtn, color: "#c0392b" }}
