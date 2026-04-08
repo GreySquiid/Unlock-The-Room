@@ -14,10 +14,42 @@ const COLORS = {
   White: "#E8E8E8",
 };
 
+// Module-level loop controller — only one loop can ever run across all mounts
+let activeLoopId = null;
+
+function stopLoop() {
+  if (activeLoopId !== null) {
+    cancelAnimationFrame(activeLoopId);
+    activeLoopId = null;
+  }
+}
+
+// Sprite sheet: 768x384, 128x160 per frame — defined once at module scope
+const SPRITE_FRAMES = {
+  idle: [
+    [0, 0, 128, 160],
+    [128, 0, 128, 160],
+    [256, 0, 128, 160],
+    [384, 0, 128, 160],
+  ],
+  walk: [
+    [0, 160, 128, 160],
+    [128, 160, 128, 160],
+    [256, 160, 128, 160],
+    [384, 160, 128, 160],
+    [512, 160, 128, 160],
+    [640, 160, 128, 160],
+  ],
+  jump: [
+    [0, 320, 128, 160],
+    [128, 320, 128, 160],
+    [256, 320, 128, 160],
+  ],
+};
+
 function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
-  const rafRef = useRef(null);
   const keysRef = useRef({});
   const [paused, setPaused] = useState(false);
   const [hudData, setHudData] = useState({
@@ -32,6 +64,7 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
   const pausedRef = useRef(false);
 
   const loadLevel = useCallback(async () => {
+    stopLoop();
     try {
       const res = await api.get(`/Levels/${level.id}/detail`);
       const data = res.data;
@@ -154,14 +187,16 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
         platforms.map((p) => `${p.x},${p.y}`)
       );
 
-      // Fix 7 — cache barrier adjacency sets; rebuild whenever barrier state changes
+      // Fix 7 — cache barrier adjacency sets and allSolids; rebuild only when barrier state changes
       const rebuildBarrierEdges = (barriers) => {
+        const locked = barriers.filter((b) => !b.unlocked);
         stateRef.current.barrierBottomEdges = new Set(
-          barriers.filter((b) => !b.unlocked).map((b) => `${b.color},${b.x},${b.y + b.h}`)
+          locked.map((b) => `${b.color},${b.x},${b.y + b.h}`)
         );
         stateRef.current.barrierTopEdges = new Set(
-          barriers.filter((b) => !b.unlocked).map((b) => `${b.color},${b.x},${b.y}`)
+          locked.map((b) => `${b.color},${b.x},${b.y}`)
         );
+        stateRef.current.allSolids = [...stateRef.current.platforms, ...locked];
       };
       stateRef.current.rebuildBarrierEdges = rebuildBarrierEdges;
       rebuildBarrierEdges(barriers);
@@ -179,9 +214,25 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       };
       bgImg.src = "/assets/utr-bg.png";
 
+      stateRef.current.spriteFrames = null;
       const spriteImg = new Image();
+      spriteImg.onload = () => {
+        const frames = {};
+        Object.entries(SPRITE_FRAMES).forEach(([state, frameList]) => {
+          frames[state] = frameList.map(([srcX, srcY, srcW, srcH]) => {
+            const drawW = Math.round(TILE * 1.2);
+            const drawH = Math.round(drawW * (160 / 128));
+            const off = document.createElement("canvas");
+            off.width = drawW;
+            off.height = drawH;
+            const offCtx = off.getContext("2d");
+            offCtx.drawImage(spriteImg, srcX, srcY, srcW, srcH, 0, 0, drawW, drawH);
+            return off;
+          });
+        });
+        stateRef.current.spriteFrames = frames;
+      };
       spriteImg.src = "/assets/squid-sprite.png";
-      stateRef.current.spriteImage = spriteImg;
 
       stateRef.current.animFrame = 0;
       stateRef.current.animTick = 0;
@@ -237,12 +288,19 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
 
   useEffect(() => {
     if (loading || !stateRef.current) return;
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
 
+    // Stop any existing loop globally before starting a new one
+    stopLoop();
+
     const loop = () => {
-      rafRef.current = requestAnimationFrame(loop);
-      if (pausedRef.current) return;
+      if (pausedRef.current) {
+        activeLoopId = requestAnimationFrame(loop);
+        return;
+      }
+
       const sp = stateRef.current.player;
       const isMovingNow = sp.vx !== 0;
       const isJumpingNow = !sp.onGround;
@@ -261,19 +319,9 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
             (stateRef.current.animFrame + 1) % frameCount;
         }
       }
+
       update(stateRef.current, keysRef.current);
       draw(ctx, stateRef.current, settings);
-
-      if (stateRef.current.levelComplete && !stateRef.current.levelCompleteFired) {
-        stateRef.current.levelCompleteFired = true;
-        setCompleted(true);
-        const elapsed = stateRef.current.elapsedSeconds;
-        setCompletionTime(elapsed);
-        if (player) {
-          api.post('/Scores', { levelId: level.id, completionTimeSeconds: elapsed })
-            .catch(err => console.error('Failed to submit score', err));
-        }
-      }
 
       const s = stateRef.current;
       const elapsed = Math.floor((Date.now() - s.startTime) / 1000);
@@ -287,10 +335,24 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
           totalKeys: s.keys.length,
         });
       }
+
+      if (s.levelComplete && !s.levelCompleteFired) {
+        s.levelCompleteFired = true;
+        setCompletionTime(s.elapsedSeconds);
+        if (player) {
+          api.post("/Scores", { levelId: level.id, completionTimeSeconds: s.elapsedSeconds })
+            .catch((err) => console.error("Failed to submit score", err));
+        }
+      }
+
+      activeLoopId = requestAnimationFrame(loop);
     };
 
-    rafRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(rafRef.current);
+    activeLoopId = requestAnimationFrame(loop);
+
+    return () => {
+      stopLoop();
+    };
   }, [loading, settings]);
 
   const update = (s, keys) => {
@@ -325,10 +387,7 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
 
     // Platform collision
     p.onGround = false;
-    const allSolids = [
-      ...s.platforms,
-      ...s.barriers.filter((b) => !b.unlocked),
-    ];
+    const allSolids = s.allSolids;
 
     // Horizontal collision
     p.x += p.vx;
@@ -416,26 +475,27 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
 
     // Platforms (adjacency sets cached at load time in s.platBottomEdges / s.platTopEdges)
     for (const plat of s.platforms) {
+      const px = Math.round(plat.x), py = Math.round(plat.y);
+      const pw = Math.round(plat.w), ph = Math.round(plat.h);
       const hasAbove = s.platBottomEdges.has(`${plat.x},${plat.y}`);
       const hasBelow = s.platTopEdges.has(`${plat.x},${plat.y + plat.h}`);
       // Body
       ctx.fillStyle = "#3d3d5c";
-      ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+      ctx.fillRect(px, py, pw, ph);
       // Top highlight — skip when a platform is directly above (would create seam)
       if (!hasAbove) {
         ctx.fillStyle = "#6060a0";
-        ctx.fillRect(plat.x, plat.y, plat.w, 3);
+        ctx.fillRect(px, py, pw, 3);
       }
-      // Inner surface: base is plat.h-4 starting at y+3; adjust for neighbors
-      // +3 top adjust when hasAbove (start from y, not y+3), +2 bottom adjust when hasBelow (cover shadow area)
-      const innerTopY = hasAbove ? plat.y : plat.y + 3;
-      const innerH = plat.h - 4 + (hasAbove ? 3 : 0) + (hasBelow ? 2 : 0);
+      // Inner surface: base is ph-4 starting at y+3; adjust for neighbors
+      const innerTopY = hasAbove ? py : py + 3;
+      const innerH = ph - 4 + (hasAbove ? 3 : 0) + (hasBelow ? 2 : 0);
       ctx.fillStyle = "#48486e";
-      ctx.fillRect(plat.x, innerTopY, plat.w, innerH);
+      ctx.fillRect(px, innerTopY, pw, innerH);
       // Bottom shadow strip — skip when a platform is directly below
       if (!hasBelow) {
         ctx.fillStyle = "#2a2a42";
-        ctx.fillRect(plat.x, plat.y + plat.h - 2, plat.w, 2);
+        ctx.fillRect(px, py + ph - 2, pw, 2);
       }
     }
 
@@ -443,6 +503,8 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
     for (const barrier of s.barriers) {
       if (barrier.unlocked) continue;
       const color = COLORS[barrier.color] || "#888";
+      const bx = Math.round(barrier.x), by = Math.round(barrier.y);
+      const bw = Math.round(barrier.w), bh = Math.round(barrier.h);
       const hasAbove = s.barrierBottomEdges.has(
         `${barrier.color},${barrier.x},${barrier.y}`,
       );
@@ -452,27 +514,27 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       // Filled body
       ctx.fillStyle = color;
       ctx.globalAlpha = 0.55;
-      ctx.fillRect(barrier.x, barrier.y, barrier.w, barrier.h);
+      ctx.fillRect(bx, by, bw, bh);
       ctx.globalAlpha = 1;
       // Border — draw as individual segments, skipping shared internal edges
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.beginPath();
       // Left edge
-      ctx.moveTo(barrier.x + 1, barrier.y + 1);
-      ctx.lineTo(barrier.x + 1, barrier.y + barrier.h - 1);
+      ctx.moveTo(bx + 1, by + 1);
+      ctx.lineTo(bx + 1, by + bh - 1);
       // Right edge
-      ctx.moveTo(barrier.x + barrier.w - 1, barrier.y + 1);
-      ctx.lineTo(barrier.x + barrier.w - 1, barrier.y + barrier.h - 1);
+      ctx.moveTo(bx + bw - 1, by + 1);
+      ctx.lineTo(bx + bw - 1, by + bh - 1);
       // Top edge — only if no neighbor above
       if (!hasAbove) {
-        ctx.moveTo(barrier.x + 1, barrier.y + 1);
-        ctx.lineTo(barrier.x + barrier.w - 1, barrier.y + 1);
+        ctx.moveTo(bx + 1, by + 1);
+        ctx.lineTo(bx + bw - 1, by + 1);
       }
       // Bottom edge — only if no neighbor below
       if (!hasBelow) {
-        ctx.moveTo(barrier.x + 1, barrier.y + barrier.h - 1);
-        ctx.lineTo(barrier.x + barrier.w - 1, barrier.y + barrier.h - 1);
+        ctx.moveTo(bx + 1, by + bh - 1);
+        ctx.lineTo(bx + bw - 1, by + bh - 1);
       }
       ctx.stroke();
       // Inner pattern lines (vertical stripes)
@@ -480,26 +542,17 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       ctx.globalAlpha = 0.4;
       ctx.lineWidth = 1;
       const stripeSpacing = 12;
-      for (
-        let sx = barrier.x + stripeSpacing;
-        sx < barrier.x + barrier.w;
-        sx += stripeSpacing
-      ) {
+      for (let sx = bx + stripeSpacing; sx < bx + bw; sx += stripeSpacing) {
         ctx.beginPath();
-        ctx.moveTo(sx, barrier.y);
-        ctx.lineTo(sx, barrier.y + barrier.h);
+        ctx.moveTo(Math.round(sx), by);
+        ctx.lineTo(Math.round(sx), by + bh);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
       if (settings?.highContrast) {
         ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
-        ctx.strokeRect(
-          barrier.x + 2,
-          barrier.y + 2,
-          barrier.w - 4,
-          barrier.h - 4,
-        );
+        ctx.strokeRect(bx + 2, by + 2, bw - 4, bh - 4);
       }
     }
 
@@ -507,9 +560,12 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
     for (const key of s.keys) {
       if (key.collected) continue;
       const color = COLORS[key.color] || "#EF9F27";
-      const cx = key.x + TILE / 2;
-      const cy = key.y + TILE / 2;
-      const r = TILE / 3;
+      const cx = Math.round(key.x + TILE / 2);
+      const cy = Math.round(key.y + TILE / 2);
+      const r = Math.round(TILE / 3);
+      const rShine = Math.round(r * 0.35);
+      const shineCx = Math.round(cx - r * 0.3);
+      const shineCy = Math.round(cy - r * 0.3);
       // Drop shadow
       ctx.fillStyle = "rgba(0,0,0,0.4)";
       ctx.beginPath();
@@ -529,7 +585,7 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       // Shine highlight
       ctx.fillStyle = "rgba(255,255,255,0.45)";
       ctx.beginPath();
-      ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.35, 0, Math.PI * 2);
+      ctx.arc(shineCx, shineCy, rShine, 0, Math.PI * 2);
       ctx.fill();
       if (settings?.highContrast) {
         ctx.strokeStyle = "#fff";
@@ -549,7 +605,8 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       if (hazard.hazardType === "Platform") continue;
 
       if (hazard.hazardType === "KillBrick") {
-        const hx = hazard.x, hy = hazard.y, hw = hazard.w, hh = hazard.h;
+        const hx = Math.round(hazard.x), hy = Math.round(hazard.y);
+        const hw = Math.round(hazard.w), hh = Math.round(hazard.h);
         const isVertical = hazard.rotation === 90 || hazard.rotation === 270;
         ctx.fillStyle = "#2a0000";
         ctx.fillRect(hx, hy, hw, hh);
@@ -591,8 +648,8 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       const spikeCols = Math.floor(hazard.w / TILE);
       for (let i = 0; i < spikeCols; i++) {
         const sx = hazard.x + i * TILE;
-        const cx = sx + TILE / 2;
-        const cy = hazard.y + hazard.h / 2;
+        const cx = Math.round(sx + TILE / 2);
+        const cy = Math.round(hazard.y + hazard.h / 2);
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate((hazard.rotation * Math.PI) / 180);
@@ -614,94 +671,59 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       if (settings?.highContrast) {
         ctx.strokeStyle = "#ff0";
         ctx.lineWidth = 2;
-        ctx.strokeRect(hazard.x, hazard.y, hazard.w, hazard.h);
+        ctx.strokeRect(Math.round(hazard.x), Math.round(hazard.y), Math.round(hazard.w), Math.round(hazard.h));
       }
     }
 
     // Exit door
     for (const door of s.exitDoors) {
-      const allCollected = s.keys.every((k) => k.collected);
+      const allCollected = s.collectedKeys === s.keys.length;
+      const dx = Math.round(door.x), dy = Math.round(door.y);
+      const dw = Math.round(door.w), dh = Math.round(door.h);
       ctx.fillStyle = allCollected ? "#0d6b4f" : "#252538";
-      ctx.fillRect(door.x, door.y, door.w, door.h);
+      ctx.fillRect(dx, dy, dw, dh);
       // Door border
       ctx.strokeStyle = allCollected ? "#1DB988" : "#555";
       ctx.lineWidth = 2;
-      ctx.strokeRect(door.x + 1, door.y + 1, door.w - 2, door.h - 2);
+      ctx.strokeRect(dx + 1, dy + 1, dw - 2, dh - 2);
       // Door detail (arch suggestion)
       ctx.strokeStyle = allCollected ? "#80F5D2" : "#444";
       ctx.lineWidth = 1;
-      ctx.strokeRect(door.x + 4, door.y + 4, door.w - 8, door.h - 4);
+      ctx.strokeRect(dx + 4, dy + 4, dw - 8, dh - 4);
       // Label
       ctx.fillStyle = allCollected ? "#80F5D2" : "#666";
       ctx.font = "bold 10px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("EXIT", door.x + door.w / 2, door.y + door.h / 2 + 4);
+      ctx.fillText("EXIT", dx + dw / 2, dy + dh / 2 + 4);
     }
 
-    // Player sprite
+    // Player sprite (pre-rendered offscreen canvases — no per-frame alpha compositing)
     const p2 = s.player;
-    if (s.spriteImage?.complete && s.spriteImage.naturalWidth > 0) {
-      const isMoving = p2.vx !== 0;
-      const isJumping = !p2.onGround;
+    if (s.spriteFrames) {
+      const animState = s.lastAnim || "idle";
+      const frameMap = s.spriteFrames[animState];
+      if (frameMap) {
+        const currentFrame = s.animFrame % frameMap.length;
+        const offscreen = frameMap[currentFrame];
 
-      // Sprite sheet: 768x384, perfect 128x128 grid
-      const FRAMES = {
-        idle: [
-          [0, 0, 128, 160],
-          [128, 0, 128, 160],
-          [256, 0, 128, 160],
-          [384, 0, 128, 160],
-        ],
-        walk: [
-          [0, 160, 128, 160],
-          [128, 160, 128, 160],
-          [256, 160, 128, 160],
-          [384, 160, 128, 160],
-          [512, 160, 128, 160],
-          [640, 160, 128, 160],
-        ],
-        jump: [
-          [0, 320, 128, 160],
-          [128, 320, 128, 160],
-          [256, 320, 128, 160],
-        ],
-      };
+        const drawW = offscreen.width;
+        const drawH = offscreen.height;
+        const drawX = Math.round(p2.x + p2.w / 2 - drawW / 2);
+        const yOffset = animState === "idle" ? 10 : animState === "jump" ? 6 : 18;
+        const drawY = Math.round(p2.y + p2.h - drawH + yOffset);
 
-      const animState = isJumping ? "jump" : isMoving ? "walk" : "idle";
-      const frameMap = FRAMES[animState];
-      const currentFrame = s.animFrame % frameMap.length;
-      const [srcX, srcY, srcW, srcH] = frameMap[currentFrame];
-
-      const drawW = TILE * 1.2;
-      const drawH = drawW * (160 / 128);
-      const drawX = p2.x + p2.w / 2 - drawW / 2;
-
-      // Per-animation vertical offset to align feet to ground
-      const yOffset = animState === "idle" ? 10 : animState === "jump" ? 6 : 18;
-      const drawY = p2.y + p2.h - drawH + yOffset;
-
-      ctx.save();
-      if (p2.facing < 0) {
-        ctx.translate(p2.x + p2.w / 2, 0);
-        ctx.scale(-1, 1);
-        ctx.translate(-(p2.x + p2.w / 2), 0);
+        ctx.save();
+        if (p2.facing < 0) {
+          ctx.translate(Math.round(p2.x + p2.w / 2), 0);
+          ctx.scale(-1, 1);
+          ctx.translate(-Math.round(p2.x + p2.w / 2), 0);
+        }
+        ctx.drawImage(offscreen, drawX, drawY);
+        ctx.restore();
       }
-
-      ctx.drawImage(
-        s.spriteImage,
-        srcX,
-        srcY,
-        srcW,
-        srcH,
-        drawX,
-        drawY,
-        drawW,
-        drawH,
-      );
-      ctx.restore();
     } else {
       ctx.fillStyle = "#9898ac";
-      ctx.fillRect(p2.x, p2.y, p2.w, p2.h);
+      ctx.fillRect(Math.round(p2.x), Math.round(p2.y), p2.w, p2.h);
     }
   };
 

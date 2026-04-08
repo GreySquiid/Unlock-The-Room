@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../services/api";
 import MainMenu from "../components/game/MainMenu";
@@ -61,12 +61,7 @@ function Game() {
     setScreen("menu");
   };
 
-  const handlePlayLevel = (level) => {
-    setSelectedLevel(level);
-    setScreen("game");
-  };
-
-  const handleLevelComplete = (timeSeconds) => {
+  const handleLevelComplete = useCallback((timeSeconds) => {
     const currentIndex = publishedLevels.findIndex(l => l.id === selectedLevel?.id);
     const nextLevel = publishedLevels[currentIndex + 1];
     if (nextLevel) {
@@ -75,7 +70,21 @@ function Game() {
     } else {
       setScreen("levelSelect");
     }
-  };
+  }, [publishedLevels, selectedLevel]);
+
+  const handleMenu = useCallback(() => setScreen("menu"), []);
+  const handleLevelSelect = useCallback(() => setScreen("levelSelect"), []);
+  const handlePlayLevel = useCallback((level) => {
+    setSelectedLevel(level);
+    setScreen("game");
+  }, []);
+
+  const stableSettings = useMemo(() => settings, [
+    settings.soundEnabled,
+    settings.showTimer,
+    settings.showControls,
+    settings.highContrast,
+  ]);
 
   const renderScreen = () => {
     switch (screen) {
@@ -95,10 +104,10 @@ function Game() {
           <GameCanvas
             level={selectedLevel}
             player={player}
-            settings={settings}
+            settings={stableSettings}
             onComplete={handleLevelComplete}
-            onMenu={() => setScreen("menu")}
-            onLevelSelect={() => setScreen("levelSelect")}
+            onMenu={handleMenu}
+            onLevelSelect={handleLevelSelect}
           />
         );
       case "login":
