@@ -74,6 +74,7 @@ function GameCanvas({
     stopLoop();
     setCompletionTime(null);
     setCompleted(false);
+    setLoading(true);
     try {
       const res = await api.get(`/Levels/${level.id}/detail`);
       const data = res.data;
