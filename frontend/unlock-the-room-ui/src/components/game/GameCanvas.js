@@ -47,7 +47,14 @@ const SPRITE_FRAMES = {
   ],
 };
 
-function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect }) {
+function GameCanvas({
+  level,
+  player,
+  settings,
+  onComplete,
+  onMenu,
+  onLevelSelect,
+}) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const keysRef = useRef({});
@@ -65,6 +72,8 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
 
   const loadLevel = useCallback(async () => {
     stopLoop();
+    setCompletionTime(null);
+    setCompleted(false);
     try {
       const res = await api.get(`/Levels/${level.id}/detail`);
       const data = res.data;
@@ -112,16 +121,31 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
         .map((o) => {
           if (o.hazardType === "KillBrick") {
             const rot = o.rotation || 0;
-            let x = o.positionX * TILE, y, w, h;
-            if (rot === 180) {        // top half
-              y = o.positionY * TILE; w = o.width * TILE; h = TILE / 2;
-            } else if (rot === 90) {  // right half
+            let x = o.positionX * TILE,
+              y,
+              w,
+              h;
+            if (rot === 180) {
+              // top half
+              y = o.positionY * TILE;
+              w = o.width * TILE;
+              h = TILE / 2;
+            } else if (rot === 90) {
+              // right half
               x = o.positionX * TILE + TILE / 2;
-              y = o.positionY * TILE; w = TILE / 2; h = o.height * TILE;
-            } else if (rot === 270) { // left half
-              y = o.positionY * TILE; w = TILE / 2; h = o.height * TILE;
-            } else {                  // 0° = bottom half (default)
-              y = o.positionY * TILE + TILE / 2; w = o.width * TILE; h = TILE / 2;
+              y = o.positionY * TILE;
+              w = TILE / 2;
+              h = o.height * TILE;
+            } else if (rot === 270) {
+              // left half
+              y = o.positionY * TILE;
+              w = TILE / 2;
+              h = o.height * TILE;
+            } else {
+              // 0° = bottom half (default)
+              y = o.positionY * TILE + TILE / 2;
+              w = o.width * TILE;
+              h = TILE / 2;
             }
             return { ...o, x, y, w, h, rotation: rot };
           }
@@ -181,20 +205,20 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
 
       // Fix 6 — cache platform adjacency sets (platforms never move)
       stateRef.current.platBottomEdges = new Set(
-        platforms.map((p) => `${p.x},${p.y + p.h}`)
+        platforms.map((p) => `${p.x},${p.y + p.h}`),
       );
       stateRef.current.platTopEdges = new Set(
-        platforms.map((p) => `${p.x},${p.y}`)
+        platforms.map((p) => `${p.x},${p.y}`),
       );
 
       // Fix 7 — cache barrier adjacency sets and allSolids; rebuild only when barrier state changes
       const rebuildBarrierEdges = (barriers) => {
         const locked = barriers.filter((b) => !b.unlocked);
         stateRef.current.barrierBottomEdges = new Set(
-          locked.map((b) => `${b.color},${b.x},${b.y + b.h}`)
+          locked.map((b) => `${b.color},${b.x},${b.y + b.h}`),
         );
         stateRef.current.barrierTopEdges = new Set(
-          locked.map((b) => `${b.color},${b.x},${b.y}`)
+          locked.map((b) => `${b.color},${b.x},${b.y}`),
         );
         stateRef.current.allSolids = [...stateRef.current.platforms, ...locked];
       };
@@ -226,7 +250,17 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
             off.width = drawW;
             off.height = drawH;
             const offCtx = off.getContext("2d");
-            offCtx.drawImage(spriteImg, srcX, srcY, srcW, srcH, 0, 0, drawW, drawH);
+            offCtx.drawImage(
+              spriteImg,
+              srcX,
+              srcY,
+              srcW,
+              srcH,
+              0,
+              0,
+              drawW,
+              drawH,
+            );
             return off;
           });
         });
@@ -340,7 +374,11 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
         s.levelCompleteFired = true;
         setCompletionTime(s.elapsedSeconds);
         if (player) {
-          api.post("/Scores", { levelId: level.id, completionTimeSeconds: s.elapsedSeconds })
+          api
+            .post("/Scores", {
+              levelId: level.id,
+              completionTimeSeconds: s.elapsedSeconds,
+            })
             .catch((err) => console.error("Failed to submit score", err));
         }
       }
@@ -475,8 +513,10 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
 
     // Platforms (adjacency sets cached at load time in s.platBottomEdges / s.platTopEdges)
     for (const plat of s.platforms) {
-      const px = Math.round(plat.x), py = Math.round(plat.y);
-      const pw = Math.round(plat.w), ph = Math.round(plat.h);
+      const px = Math.round(plat.x),
+        py = Math.round(plat.y);
+      const pw = Math.round(plat.w),
+        ph = Math.round(plat.h);
       const hasAbove = s.platBottomEdges.has(`${plat.x},${plat.y}`);
       const hasBelow = s.platTopEdges.has(`${plat.x},${plat.y + plat.h}`);
       // Body
@@ -503,8 +543,10 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
     for (const barrier of s.barriers) {
       if (barrier.unlocked) continue;
       const color = COLORS[barrier.color] || "#888";
-      const bx = Math.round(barrier.x), by = Math.round(barrier.y);
-      const bw = Math.round(barrier.w), bh = Math.round(barrier.h);
+      const bx = Math.round(barrier.x),
+        by = Math.round(barrier.y);
+      const bw = Math.round(barrier.w),
+        bh = Math.round(barrier.h);
       const hasAbove = s.barrierBottomEdges.has(
         `${barrier.color},${barrier.x},${barrier.y}`,
       );
@@ -605,8 +647,10 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
       if (hazard.hazardType === "Platform") continue;
 
       if (hazard.hazardType === "KillBrick") {
-        const hx = Math.round(hazard.x), hy = Math.round(hazard.y);
-        const hw = Math.round(hazard.w), hh = Math.round(hazard.h);
+        const hx = Math.round(hazard.x),
+          hy = Math.round(hazard.y);
+        const hw = Math.round(hazard.w),
+          hh = Math.round(hazard.h);
         const isVertical = hazard.rotation === 90 || hazard.rotation === 270;
         ctx.fillStyle = "#2a0000";
         ctx.fillRect(hx, hy, hw, hh);
@@ -614,11 +658,11 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
         const laserGrad = isVertical
           ? ctx.createLinearGradient(hx, hy, hx + hw, hy)
           : ctx.createLinearGradient(hx, hy, hx, hy + hh);
-        laserGrad.addColorStop(0,   "rgba(160, 0, 0, 0.95)");
+        laserGrad.addColorStop(0, "rgba(160, 0, 0, 0.95)");
         laserGrad.addColorStop(0.3, "rgba(240, 20, 20, 1.0)");
         laserGrad.addColorStop(0.5, "rgba(255, 60, 60, 1.0)");
         laserGrad.addColorStop(0.7, "rgba(240, 20, 20, 1.0)");
-        laserGrad.addColorStop(1,   "rgba(160, 0, 0, 0.95)");
+        laserGrad.addColorStop(1, "rgba(160, 0, 0, 0.95)");
         ctx.fillStyle = laserGrad;
         ctx.fillRect(hx, hy, hw, hh);
         // Bright core strip runs along the long dimension
@@ -655,31 +699,38 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
         ctx.rotate((hazard.rotation * Math.PI) / 180);
         ctx.fillStyle = "#888";
         ctx.beginPath();
-        ctx.moveTo(-TILE / 2 + 2,  TILE / 2);
-        ctx.lineTo(0,              -TILE / 2 + 2);
-        ctx.lineTo( TILE / 2 - 2,  TILE / 2);
+        ctx.moveTo(-TILE / 2 + 2, TILE / 2);
+        ctx.lineTo(0, -TILE / 2 + 2);
+        ctx.lineTo(TILE / 2 - 2, TILE / 2);
         ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = "#aaa";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(-TILE / 2 + 2, TILE / 2);
-        ctx.lineTo(0,             -TILE / 2 + 2);
+        ctx.lineTo(0, -TILE / 2 + 2);
         ctx.stroke();
         ctx.restore();
       }
       if (settings?.highContrast) {
         ctx.strokeStyle = "#ff0";
         ctx.lineWidth = 2;
-        ctx.strokeRect(Math.round(hazard.x), Math.round(hazard.y), Math.round(hazard.w), Math.round(hazard.h));
+        ctx.strokeRect(
+          Math.round(hazard.x),
+          Math.round(hazard.y),
+          Math.round(hazard.w),
+          Math.round(hazard.h),
+        );
       }
     }
 
     // Exit door
     for (const door of s.exitDoors) {
       const allCollected = s.collectedKeys === s.keys.length;
-      const dx = Math.round(door.x), dy = Math.round(door.y);
-      const dw = Math.round(door.w), dh = Math.round(door.h);
+      const dx = Math.round(door.x),
+        dy = Math.round(door.y);
+      const dw = Math.round(door.w),
+        dh = Math.round(door.h);
       ctx.fillStyle = allCollected ? "#0d6b4f" : "#252538";
       ctx.fillRect(dx, dy, dw, dh);
       // Door border
@@ -709,7 +760,8 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
         const drawW = offscreen.width;
         const drawH = offscreen.height;
         const drawX = Math.round(p2.x + p2.w / 2 - drawW / 2);
-        const yOffset = animState === "idle" ? 10 : animState === "jump" ? 6 : 18;
+        const yOffset =
+          animState === "idle" ? 10 : animState === "jump" ? 6 : 18;
         const drawY = Math.round(p2.y + p2.h - drawH + yOffset);
 
         ctx.save();
@@ -817,38 +869,68 @@ function GameCanvas({ level, player, settings, onComplete, onMenu, onLevelSelect
           {completionTime !== null && (
             <div style={styles.pauseOverlay}>
               <div style={styles.pauseMenu}>
-                <p style={{ color: '#80F5D2', fontSize: '13px', margin: '0 0 4px' }}>
+                <p
+                  style={{
+                    color: "#80F5D2",
+                    fontSize: "13px",
+                    margin: "0 0 4px",
+                  }}
+                >
                   LEVEL COMPLETE
                 </p>
-                <h2 style={{ ...styles.pauseTitle, color: '#fff', fontSize: '28px' }}>
+                <h2
+                  style={{
+                    ...styles.pauseTitle,
+                    color: "#fff",
+                    fontSize: "28px",
+                  }}
+                >
                   {formatTime(completionTime)}
                 </h2>
-                <p style={{ color: '#888', fontSize: '12px', margin: '-6px 0 12px' }}>
+                <p
+                  style={{
+                    color: "#888",
+                    fontSize: "12px",
+                    margin: "-6px 0 12px",
+                  }}
+                >
                   completion time
                 </p>
-                <button style={styles.pauseMenuResume} onClick={() => onComplete(completionTime)}>
+                <button
+                  style={styles.pauseMenuResume}
+                  onClick={() => onComplete(completionTime)}
+                >
                   Next level
                 </button>
-                <button style={styles.pauseMenuItem} onClick={() => {
-                  setCompletionTime(null);
-                  setCompleted(false);
-                  loadLevel();
-                }}>
+                <button
+                  style={styles.pauseMenuItem}
+                  onClick={() => {
+                    setCompletionTime(null);
+                    setCompleted(false);
+                    loadLevel();
+                  }}
+                >
                   Replay level
                 </button>
                 {player && (
-                  <button style={styles.pauseMenuItem} onClick={async () => {
-                    try {
-                      await api.post(`/SavedLevels/${level.id}`);
-                      alert('Level saved!');
-                    } catch {
-                      alert('Already saved or error saving.');
-                    }
-                  }}>
+                  <button
+                    style={styles.pauseMenuItem}
+                    onClick={async () => {
+                      try {
+                        await api.post(`/SavedLevels/${level.id}`);
+                        alert("Level saved!");
+                      } catch {
+                        alert("Already saved or error saving.");
+                      }
+                    }}
+                  >
                     Save level
                   </button>
                 )}
-                <button style={styles.pauseMenuItem} onClick={() => onLevelSelect()}>
+                <button
+                  style={styles.pauseMenuItem}
+                  onClick={() => onLevelSelect()}
+                >
                   Change level
                 </button>
               </div>
