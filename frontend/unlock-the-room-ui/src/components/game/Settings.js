@@ -17,12 +17,6 @@ function Settings({ settings, onSave, onBack }) {
 
         <div style={styles.settingsList}>
           <SettingRow
-            label="Sound effects"
-            description="Play sounds during gameplay"
-            checked={local.soundEnabled}
-            onChange={() => toggle("soundEnabled")}
-          />
-          <SettingRow
             label="Show timer"
             description="Display elapsed time during gameplay"
             checked={local.showTimer}
@@ -33,12 +27,6 @@ function Settings({ settings, onSave, onBack }) {
             description="Display keyboard controls on screen"
             checked={local.showControls}
             onChange={() => toggle("showControls")}
-          />
-          <SettingRow
-            label="High contrast mode"
-            description="Use shapes and patterns instead of color alone for accessibility"
-            checked={local.highContrast}
-            onChange={() => toggle("highContrast")}
           />
         </div>
 
