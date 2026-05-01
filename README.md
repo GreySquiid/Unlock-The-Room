@@ -178,18 +178,6 @@ Production deployment is automated — pushing to the `main` branch of the GitHu
 
 ---
 
-## Demo Credentials
-
-Two accounts are provided so you can experience both sides of the application:
-
-| Role | Email | Password | Access |
-|---|---|---|---|
-| **Developer** | demo@greysquiid.com | Demo@2026! | Full dashboard — level editor, AI generator, reports |
-| **Player** | player@greysquiid.com | Play@2026! | Game client only — play levels, submit scores |
-
-Log in through the game → My Account → Developer Dashboard (if applicable).
-
----
 
 ## Project Structure
 
