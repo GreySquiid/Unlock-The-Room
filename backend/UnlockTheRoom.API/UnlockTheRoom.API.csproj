@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\SeedData\canonical-levels.json" Link="SeedData\canonical-levels.json">
+    <Content Update="SeedData\canonical-levels.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
