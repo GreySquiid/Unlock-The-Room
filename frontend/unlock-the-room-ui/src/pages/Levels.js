@@ -405,7 +405,7 @@ function Levels() {
             onClose={() => { setEditingLayout(null); fetchLevels(); }}
             onPlayTest={(lvl) => {
               setEditingLayout(null);
-              navigate("/game", { state: { autoPlay: lvl } });
+              navigate("/play", { state: { autoPlay: lvl } });
             }}
           />
         )}
