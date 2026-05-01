@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using UnlockTheRoom.API.DTOs;
 using UnlockTheRoom.API.Services;
 
@@ -18,6 +19,7 @@ public class AiController : ControllerBase
     }
 
     [HttpPost("generate-preview")]
+    [EnableRateLimiting("ai-generate")]
     public async Task<IActionResult> GeneratePreview([FromBody] GenerateLevelRequestDto request)
     {
         try
@@ -32,6 +34,7 @@ public class AiController : ControllerBase
     }
 
     [HttpPost("generate-and-save")]
+    [EnableRateLimiting("ai-generate")]
     public async Task<IActionResult> GenerateAndSave([FromBody] GenerateLevelRequestDto request)
     {
         try

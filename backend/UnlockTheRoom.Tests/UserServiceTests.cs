@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.Extensions.Configuration;
 using UnlockTheRoom.API.DTOs;
 using UnlockTheRoom.API.Services;
@@ -189,5 +191,45 @@ public class UserServiceTests
 
         // Assert
         Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task DemoLoginAsync_WhenDemoUserExists_ReturnsValidJwtWithDeveloperRole()
+    {
+        // Arrange
+        var context = TestDbContextFactory.Create();
+        var service = new UserService(context, _configuration);
+        await service.RegisterAsync(new RegisterDto
+        {
+            Username = "Demo Developer",
+            Email = "demo@greysquiid.com",
+            Password = "Demo@2026!"
+        }, "Developer");
+
+        // Act
+        var result = await service.DemoLoginAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Token);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(result.Token);
+        var role = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+        Assert.Equal("Developer", role);
+    }
+
+    [Fact]
+    public async Task DemoLoginAsync_WhenDemoUserDoesNotExist_ReturnsNull()
+    {
+        // Arrange - empty DB, no demo user
+        var context = TestDbContextFactory.Create();
+        var service = new UserService(context, _configuration);
+
+        // Act
+        var result = await service.DemoLoginAsync();
+
+        // Assert
+        Assert.Null(result);
     }
 }

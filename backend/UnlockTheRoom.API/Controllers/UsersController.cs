@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using UnlockTheRoom.API.DTOs;
 using UnlockTheRoom.API.Services;
+using System.Security.Claims;
 
 namespace UnlockTheRoom.API.Controllers;
 
@@ -10,10 +12,36 @@ namespace UnlockTheRoom.API.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly UserService _userService;
+    private readonly IConfiguration _configuration;
 
-    public UsersController(UserService userService)
+    public UsersController(UserService userService, IConfiguration configuration)
     {
         _userService = userService;
+        _configuration = configuration;
+    }
+
+    [HttpGet("demo-reset-status")]
+    [Authorize]
+    public IActionResult DemoResetStatus()
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email);
+        if (email != "demo@greysquiid.com") return Forbid();
+
+        var last = DemoResetService.LastResetUtc;
+        return Ok(new { lastResetUtc = last?.ToString("o") });
+    }
+
+    [HttpPost("demo-login")]
+    [EnableRateLimiting("demo-login")]
+    public async Task<IActionResult> DemoLogin()
+    {
+        var enabled = _configuration.GetValue<bool>("Features:DemoLogin");
+        if (!enabled) return NotFound();
+
+        var result = await _userService.DemoLoginAsync();
+        if (result == null) return NotFound();
+
+        return Ok(result);
     }
 
     [HttpPost("register")]

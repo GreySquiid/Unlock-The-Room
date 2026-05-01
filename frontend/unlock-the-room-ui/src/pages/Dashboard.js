@@ -2,16 +2,33 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
+const DEMO_EMAIL = 'demo@greysquiid.com';
+
 function Dashboard() {
   const [stats, setStats] = useState({ total: 0, published: 0, validated: 0 });
+  const [lastReset, setLastReset] = useState(null);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isDemo = user.email === DEMO_EMAIL;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
     fetchStats();
-  }, []);
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    if (currentUser.email === DEMO_EMAIL) fetchResetStatus();
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchResetStatus = async () => {
+    try {
+      const res = await api.get('/Users/demo-reset-status');
+      if (res.data.lastResetUtc) {
+        setLastReset(new Date(res.data.lastResetUtc).toLocaleString());
+      }
+    } catch {
+      // Not critical — silently ignore
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -77,10 +94,18 @@ function Dashboard() {
           <ActionCard
             title="Play game"
             description="Open the player-facing game"
-            onClick={() => navigate('/game')}
+            onClick={() => navigate('/play')}
           />
         </div>
       </div>
+
+      {isDemo && (
+        <div style={styles.demoFooter}>
+          {lastReset
+            ? `Last demo reset: ${lastReset}`
+            : 'Demo reset pending — runs every 24 h'}
+        </div>
+      )}
     </div>
   );
 }
@@ -130,6 +155,14 @@ const styles = {
   actionCardPrimary: { background: '#185FA5', border: '1px solid #185FA5' },
   actionTitle: { fontSize: '15px', fontWeight: '600', margin: '0 0 6px' },
   actionDesc: { fontSize: '13px', color: '#888', margin: 0 },
+  demoFooter: {
+    fontSize: '11px',
+    color: '#bbb',
+    textAlign: 'center',
+    padding: '12px',
+    borderTop: '1px solid #f0f0f0',
+    background: '#fff',
+  },
 };
 
 export default Dashboard;

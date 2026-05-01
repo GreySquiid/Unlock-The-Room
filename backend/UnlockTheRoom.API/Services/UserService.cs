@@ -85,6 +85,20 @@ public class UserService
         return MapToDto(user);
     }
 
+    public async Task<AuthResponseDto?> DemoLoginAsync()
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == "demo@greysquiid.com");
+
+        if (user == null) return null;
+
+        return new AuthResponseDto
+        {
+            Token = GenerateToken(user),
+            User = MapToDto(user)
+        };
+    }
+
     public async Task<bool> DeleteUserAsync(int id)
     {
         var user = await _context.Users.FindAsync(id);
