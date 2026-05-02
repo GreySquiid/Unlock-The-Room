@@ -1,26 +1,36 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
 import { GAME_UI } from "../../gameColors";
+import ParallaxBackground from "./ParallaxBackground";
+import LevelThumbnail from "./LevelThumbnail";
 
 function LevelSelect({ player, settings, onPlay, onBack }) {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completedIds, setCompletedIds] = useState([]);
-  const [leaderboard, setLeaderboard] = useState({});
+  const [myBestTimes, setMyBestTimes] = useState({});
+  const [levelDetails, setLevelDetails] = useState({});
 
   useEffect(() => {
     fetchLevels();
     if (player) fetchScores();
-    fetchLeaderboard();
   }, [player]);
 
   const fetchLevels = async () => {
     try {
       const res = await api.get("/Levels");
-      setLevels(res.data.filter((l) => l.isPublished));
+      const published = res.data.filter((l) => l.isPublished);
+      setLevels(published);
+      setLoading(false);
+
+      // Kick off parallel detail fetches — each resolves incrementally
+      for (const level of published) {
+        api.get(`/Levels/${level.id}/detail`)
+          .then((r) => setLevelDetails((prev) => ({ ...prev, [level.id]: r.data })))
+          .catch(() => {}); // silently skip — thumbnail just stays as skeleton
+      }
     } catch {
       setLevels([]);
-    } finally {
       setLoading(false);
     }
   };
@@ -28,22 +38,20 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
   const fetchScores = async () => {
     try {
       const res = await api.get("/Scores/mine");
-      setCompletedIds([...new Set(res.data.map((s) => s.levelId))]);
+      const scores = res.data;
+      setCompletedIds([...new Set(scores.map((s) => s.levelId))]);
+
+      // Personal best per level (minimum completionTimeSeconds)
+      const bests = {};
+      for (const s of scores) {
+        if (!bests[s.levelId] || s.completionTimeSeconds < bests[s.levelId].completionTimeSeconds) {
+          bests[s.levelId] = s;
+        }
+      }
+      setMyBestTimes(bests);
     } catch {
       setCompletedIds([]);
-    }
-  };
-
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await api.get("/Scores/leaderboard?take=100");
-      const best = {};
-      res.data.forEach((score) => {
-        if (!best[score.levelId]) best[score.levelId] = score;
-      });
-      setLeaderboard(best);
-    } catch {
-      setLeaderboard({});
+      setMyBestTimes({});
     }
   };
 
@@ -53,55 +61,61 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
   };
 
   const diffColor = (d) => {
-    if (d === "Easy") return GAME_UI.diffEasy;
+    if (d === "Easy")   return GAME_UI.diffEasy;
     if (d === "Medium") return GAME_UI.diffMedium;
-    if (d === "Hard") return "var(--color-danger-text)";
+    if (d === "Hard")   return "var(--color-danger-text)";
     return GAME_UI.textMuted;
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Select Level</h2>
-          <button style={styles.backBtn} onClick={onBack}>
-            Menu
-          </button>
-        </div>
+    <>
+      <ParallaxBackground />
 
-        {!player && (
-          <p style={styles.notice}>
-            Log in to track your progress and unlock levels
-          </p>
-        )}
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.header}>
+            <h2 style={styles.title}>Select Level</h2>
+            <button style={styles.backBtn} onClick={onBack}>
+              Menu
+            </button>
+          </div>
 
-        {loading && <p style={styles.message}>Loading levels...</p>}
-        {!loading && levels.length === 0 && (
-          <p style={styles.message}>No published levels available yet.</p>
-        )}
+          {!player && (
+            <p style={styles.notice}>
+              Log in to track your progress and unlock levels
+            </p>
+          )}
 
-        <div style={styles.grid}>
-          {levels.map((level, index) => {
-            const unlocked = !player || isUnlocked(index);
-            return (
-              <LevelCard
-                key={level.id}
-                level={level}
-                index={index}
-                unlocked={unlocked}
-                diffColor={diffColor}
-                onPlay={onPlay}
-                bestScore={leaderboard[level.id]}
-              />
-            );
-          })}
+          {loading && <p style={styles.message}>Loading levels...</p>}
+          {!loading && levels.length === 0 && (
+            <p style={styles.message}>No published levels available yet.</p>
+          )}
+
+          <div style={styles.grid}>
+            {levels.map((level, index) => {
+              const unlocked = !player || isUnlocked(index);
+              return (
+                <LevelCard
+                  key={level.id}
+                  level={level}
+                  index={index}
+                  unlocked={unlocked}
+                  completed={player ? completedIds.includes(level.id) : false}
+                  diffColor={diffColor}
+                  onPlay={onPlay}
+                  myBest={player ? myBestTimes[level.id] : null}
+                  detail={levelDetails[level.id] || null}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-function LevelCard({ level, index, unlocked, diffColor, onPlay, bestScore }) {
+function LevelCard({ level, index, unlocked, completed, diffColor, onPlay, myBest, detail }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -115,37 +129,59 @@ function LevelCard({ level, index, unlocked, diffColor, onPlay, bestScore }) {
       onMouseEnter={() => unlocked && setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Thumbnail — skeleton while detail is loading */}
+      {detail ? (
+        <LevelThumbnail
+          gameObjects={detail.gameObjects}
+          rows={detail.rows}
+          columns={detail.columns}
+        />
+      ) : (
+        <div style={styles.thumbnailSkeleton} />
+      )}
+
       <div style={styles.levelNumber}>{index + 1}</div>
       <p style={styles.levelName}>{level.name}</p>
       <p style={{ ...styles.levelDiff, color: diffColor(level.difficulty) }}>
         {level.difficulty}
       </p>
-      {bestScore && (
-        <p style={{ fontSize: "10px", color: GAME_UI.accentPurple, margin: "4px 0 0", fontVariantNumeric: "tabular-nums" }}>
-          Best: {bestScore.formattedTime}
-        </p>
+
+      {myBest && (
+        <p style={styles.bestTime}>Best: {myBest.formattedTime}</p>
       )}
-      {!unlocked && <div style={styles.lockOverlay}>&#x1F512;</div>}
+
+      {/* Completion star — top-right, gold */}
+      {completed && unlocked && (
+        <span style={styles.completedStar}>★</span>
+      )}
+
+      {/* Lock indicator — visible white */}
+      {!unlocked && (
+        <span style={styles.lockOverlay}>&#x1F512;</span>
+      )}
     </div>
   );
 }
 
 const styles = {
   container: {
+    position: "relative",
+    zIndex: 1,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: "2rem",
+    minHeight: "100vh",
   },
   card: {
     background: GAME_UI.cardBgDeep,
     border: `1px solid ${GAME_UI.cardBorderDeep}`,
     borderRadius: "16px",
     padding: "2rem",
-    width: "560px",
+    width: "600px",
     maxHeight: "80vh",
     overflowY: "auto",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
   },
   header: {
     display: "flex",
@@ -184,7 +220,7 @@ const styles = {
     background: GAME_UI.rowBg,
     border: `1px solid ${GAME_UI.rowBorder}`,
     borderRadius: "10px",
-    padding: "14px 10px",
+    padding: "10px 8px",
     textAlign: "center",
     cursor: "pointer",
     position: "relative",
@@ -195,29 +231,51 @@ const styles = {
     border: "1px solid var(--color-primary)",
     boxShadow: "0 0 12px rgba(83,74,183,0.25)",
   },
-  levelLocked: { opacity: 0.35, cursor: "not-allowed" },
+  levelLocked: { opacity: 0.5, cursor: "not-allowed" },
+  thumbnailSkeleton: {
+    width: "100%",
+    height: "50px",
+    borderRadius: "4px",
+    background: "rgba(255,255,255,0.04)",
+    marginBottom: "6px",
+  },
   levelNumber: {
     fontSize: "22px",
     fontWeight: "800",
     color: GAME_UI.accentPurple,
-    marginBottom: "5px",
+    marginBottom: "4px",
   },
   levelName: {
     fontSize: "10px",
     color: GAME_UI.textPlaceholder,
-    margin: "0 0 4px",
+    margin: "0 0 3px",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
     letterSpacing: "0.2px",
   },
   levelDiff: { fontSize: "10px", fontWeight: "600", margin: 0 },
+  bestTime: {
+    fontSize: "10px",
+    color: GAME_UI.accentPurple,
+    margin: "3px 0 0",
+    fontVariantNumeric: "tabular-nums",
+  },
+  completedStar: {
+    position: "absolute",
+    top: "6px",
+    right: "7px",
+    fontSize: "12px",
+    lineHeight: 1,
+    color: "var(--color-warning)",
+  },
   lockOverlay: {
     position: "absolute",
     top: "6px",
-    right: "8px",
-    fontSize: "11px",
-    opacity: 0.6,
+    right: "7px",
+    fontSize: "12px",
+    lineHeight: 1,
+    filter: "grayscale(1) brightness(5)",
   },
   backBtn: {
     padding: "6px 14px",

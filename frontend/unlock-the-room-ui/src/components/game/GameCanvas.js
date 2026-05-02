@@ -71,6 +71,7 @@ function GameCanvas({
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);
   const [completionTime, setCompletionTime] = useState(null);
+  const [prevBestSeconds, setPrevBestSeconds] = useState(null);
   const pausedRef = useRef(false);
 
   const loadLevel = useCallback(async () => {
@@ -297,6 +298,27 @@ function GameCanvas({
   useEffect(() => {
     loadLevel();
   }, [loadLevel]);
+
+  // Fetch player's previous best for this level before they complete it
+  useEffect(() => {
+    if (!player) {
+      setPrevBestSeconds(null);
+      return;
+    }
+    api.get("/Scores/mine")
+      .then((res) => {
+        const mine = res.data.filter((s) => s.levelId === level.id);
+        if (mine.length > 0) {
+          const best = mine.reduce((a, b) =>
+            a.completionTimeSeconds < b.completionTimeSeconds ? a : b
+          );
+          setPrevBestSeconds(best.completionTimeSeconds);
+        } else {
+          setPrevBestSeconds(null);
+        }
+      })
+      .catch(() => setPrevBestSeconds(null));
+  }, [player, level.id]);
 
   useEffect(() => {
     const down = (e) => {
@@ -873,6 +895,12 @@ function GameCanvas({
           {completionTime !== null && (
             <div style={styles.pauseOverlay}>
               <div style={styles.pauseMenu}>
+                {/* ★ callout: first completion or new best (logged-in players only) */}
+                {player && (prevBestSeconds === null || completionTime < prevBestSeconds) && (
+                  <p style={styles.newBestCallout}>
+                    {prevBestSeconds === null ? "★ First completion!" : "★ New best!"}
+                  </p>
+                )}
                 <p
                   style={{
                     color: "var(--game-accent)",
@@ -891,11 +919,17 @@ function GameCanvas({
                 >
                   {formatTime(completionTime)}
                 </h2>
+                {/* Previous personal best — shown when a prior run exists */}
+                {player && prevBestSeconds !== null && (
+                  <p style={styles.prevBestLabel}>
+                    Best: {formatTime(prevBestSeconds)}
+                  </p>
+                )}
                 <p
                   style={{
                     color: "var(--text-subtle)",
                     fontSize: "12px",
-                    margin: "-6px 0 12px",
+                    margin: "-2px 0 12px",
                   }}
                 >
                   completion time
@@ -942,8 +976,8 @@ function GameCanvas({
           )}
         </div>
 
-        {/* Controls reminder */}
-        {settings?.showControls && (
+        {/* Controls reminder — hidden when level complete overlay is showing */}
+        {settings?.showControls && completionTime === null && (
           <div style={styles.controls}>
             <span>← → Move</span>
             <span>Space / ↑ Jump</span>
@@ -1097,6 +1131,20 @@ const styles = {
     fontSize: "11px",
     marginTop: "8px",
     letterSpacing: "0.2px",
+  },
+  newBestCallout: {
+    color: "var(--color-warning)",
+    fontSize: "14px",
+    fontWeight: "700",
+    margin: "0 0 8px",
+    letterSpacing: "0.3px",
+    animation: "newBestBounce 0.5s ease-out",
+  },
+  prevBestLabel: {
+    color: "var(--text-subtle)",
+    fontSize: "11px",
+    margin: "-4px 0 4px",
+    fontVariantNumeric: "tabular-nums",
   },
 };
 
