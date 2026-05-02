@@ -10,10 +10,14 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
   const [completedIds, setCompletedIds] = useState([]);
   const [myBestTimes, setMyBestTimes] = useState({});
   const [levelDetails, setLevelDetails] = useState({});
+  const [savedIds, setSavedIds] = useState(new Set());
 
   useEffect(() => {
     fetchLevels();
-    if (player) fetchScores();
+    if (player) {
+      fetchScores();
+      fetchSaved();
+    }
   }, [player]);
 
   const fetchLevels = async () => {
@@ -32,6 +36,15 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
     } catch {
       setLevels([]);
       setLoading(false);
+    }
+  };
+
+  const fetchSaved = async () => {
+    try {
+      const res = await api.get("/SavedLevels");
+      setSavedIds(new Set(res.data.map((sl) => sl.levelId)));
+    } catch {
+      setSavedIds(new Set());
     }
   };
 
@@ -100,7 +113,7 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
                   level={level}
                   index={index}
                   unlocked={unlocked}
-                  completed={player ? completedIds.includes(level.id) : false}
+                  isSaved={player ? savedIds.has(level.id) : false}
                   diffColor={diffColor}
                   onPlay={onPlay}
                   myBest={player ? myBestTimes[level.id] : null}
@@ -115,7 +128,7 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
   );
 }
 
-function LevelCard({ level, index, unlocked, completed, diffColor, onPlay, myBest, detail }) {
+function LevelCard({ level, index, unlocked, isSaved, diffColor, onPlay, myBest, detail }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -150,9 +163,13 @@ function LevelCard({ level, index, unlocked, completed, diffColor, onPlay, myBes
         <p style={styles.bestTime}>Best: {myBest.formattedTime}</p>
       )}
 
-      {/* Completion star — top-right, gold */}
-      {completed && unlocked && (
-        <span style={styles.completedStar}>★</span>
+      {/* Saved-level bookmark — top-right, shown only when in player's saved list */}
+      {isSaved && (
+        <span style={styles.savedBookmark}>
+          <svg width="9" height="12" viewBox="0 0 9 12" fill={GAME_UI.accentPurple}>
+            <path d="M1 0h7a1 1 0 0 1 1 1v11L4.5 8.5 0 12V1a1 1 0 0 1 1-1z" />
+          </svg>
+        </span>
       )}
 
       {/* Lock indicator — visible white */}
@@ -261,13 +278,13 @@ const styles = {
     margin: "3px 0 0",
     fontVariantNumeric: "tabular-nums",
   },
-  completedStar: {
+  savedBookmark: {
     position: "absolute",
-    top: "6px",
-    right: "7px",
-    fontSize: "12px",
+    top: "5px",
+    right: "6px",
     lineHeight: 1,
-    color: "var(--color-warning)",
+    display: "flex",
+    alignItems: "center",
   },
   lockOverlay: {
     position: "absolute",

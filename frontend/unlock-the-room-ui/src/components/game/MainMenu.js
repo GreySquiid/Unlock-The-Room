@@ -11,7 +11,7 @@ const IDLE_FRAMES = [
 ];
 const SQUID_W = 64;
 const SQUID_H = 80;
-const PLAT_H  = 7;
+const PLAT_H  = 9;
 
 function SquidCanvas() {
   const canvasRef = useRef(null);
@@ -34,11 +34,15 @@ function SquidCanvas() {
         const [sx, sy, sw, sh] = IDLE_FRAMES[f];
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, SQUID_W, SQUID_H);
       }
-      // Small platform underfoot
-      ctx.fillStyle = PLATFORM_COLORS.topHighlight;
+      // Small platform underfoot — matches in-game platform art language
+      ctx.fillStyle = PLATFORM_COLORS.topHighlight;   // purple top edge
       ctx.fillRect(0, SQUID_H, SQUID_W, 3);
-      ctx.fillStyle = PLATFORM_COLORS.body;
-      ctx.fillRect(0, SQUID_H + 3, SQUID_W, PLAT_H - 3);
+      ctx.fillStyle = PLATFORM_COLORS.inner;          // lighter mid strip
+      ctx.fillRect(0, SQUID_H + 3, SQUID_W, 4);
+      ctx.fillStyle = PLATFORM_COLORS.body;           // dark body
+      ctx.fillRect(0, SQUID_H + 7, SQUID_W, 1);
+      ctx.fillStyle = PLATFORM_COLORS.bottomShadow;   // deepest shadow
+      ctx.fillRect(0, SQUID_H + 8, SQUID_W, 1);
     };
 
     if (reduced) {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import api from "../../services/api";
 import {
   BARRIER_COLORS,
+  BARRIER_BRIGHT_COLORS,
   PLATFORM_COLORS,
   KILLBRICK_BG,
   EXIT_COLORS,
@@ -11,6 +12,19 @@ import {
   HIGH_CONTRAST_WHITE,
   GAME_BG_FALLBACK,
 } from "../../gameColors";
+
+// Read once at module load — no per-frame matchMedia calls
+const reducedMotion =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Convert a 6-digit hex color to an rgba() string
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 const TILE = 40;
 const GRAVITY = 0.4;
@@ -203,10 +217,18 @@ function GameCanvas({
         cols: data.columns,
         rows: data.rows,
         lastHudUpdate: -1,
+        lastCollectedKeys: -1,
         collectedKeys: 0,
         levelCompleteFired: false,
+        particles: [],
+        exitParticlesSpawned: false,
       };
-      setHudData({ time: 0, keysCollected: 0, totalKeys: keys.length });
+      setHudData({
+        time: 0,
+        keysCollected: 0,
+        totalKeys: keys.length,
+        keyStates: keys.map((k) => ({ color: k.color, collected: false })),
+      });
 
       // Fix 6 — cache platform adjacency sets (platforms never move)
       stateRef.current.platBottomEdges = new Set(
@@ -387,12 +409,15 @@ function GameCanvas({
       const elapsed = Math.floor((Date.now() - s.startTime) / 1000);
       s.elapsedSeconds = elapsed;
 
-      if (elapsed !== s.lastHudUpdate) {
+      const collectedChanged = s.collectedKeys !== s.lastCollectedKeys;
+      if (elapsed !== s.lastHudUpdate || collectedChanged) {
         s.lastHudUpdate = elapsed;
+        s.lastCollectedKeys = s.collectedKeys;
         setHudData({
           time: elapsed,
           keysCollected: s.collectedKeys,
           totalKeys: s.keys.length,
+          keyStates: s.keys.map((k) => ({ color: k.color, collected: k.collected })),
         });
       }
 
@@ -497,6 +522,15 @@ function GameCanvas({
           if (barrier.color === key.color) barrier.unlocked = true;
         }
         s.rebuildBarrierEdges(s.barriers);
+        if (!reducedMotion) {
+          spawnParticles(
+            s,
+            key.x + TILE / 2,
+            key.y + TILE / 2,
+            BARRIER_COLORS[key.color] || BARRIER_COLORS.Yellow,
+            12,
+          );
+        }
       }
     }
 
@@ -520,7 +554,49 @@ function GameCanvas({
     for (const door of s.exitDoors) {
       if (allKeysCollected && rectsOverlap(p, door)) {
         s.levelComplete = true;
+        if (!reducedMotion && !s.exitParticlesSpawned) {
+          s.exitParticlesSpawned = true;
+          spawnParticles(
+            s,
+            door.x + door.w / 2,
+            door.y + door.h / 2,
+            "#ffffff",
+            12,
+          );
+        }
       }
+    }
+
+    // Particle tick — velocity, gravity, fade, FIFO eviction keeps pool ≤ 100
+    if (s.particles.length > 0) {
+      for (const pt of s.particles) {
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vy += 0.08;
+        pt.life -= 1 / 36; // ~600 ms at 60 fps
+      }
+      s.particles = s.particles.filter((pt) => pt.life > 0);
+    }
+  };
+
+  // FIFO eviction: if adding `count` particles would exceed 100, drop the oldest.
+  const spawnParticles = (s, cx, cy, color, count) => {
+    const MAX_PARTICLES = 100;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 2 + Math.random() * 3;
+      const pt = {
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        life: 1.0,
+        color,
+      };
+      if (s.particles.length >= MAX_PARTICLES) {
+        s.particles.shift(); // evict oldest
+      }
+      s.particles.push(pt);
     }
   };
 
@@ -565,10 +641,14 @@ function GameCanvas({
       }
     }
 
-    // Barriers (adjacency sets rebuilt via s.rebuildBarrierEdges only when state changes)
+    // Barriers — animated energy field
+    const stripeSpacing = 18;
+    // Scrolling offset advances ~1px per frame at 60fps; frozen when reduced motion
+    const stripeOffset = reducedMotion ? 0 : (Date.now() / 60) % stripeSpacing;
     for (const barrier of s.barriers) {
       if (barrier.unlocked) continue;
       const color = BARRIER_COLORS[barrier.color] || BARRIER_COLORS.White;
+      const bright = BARRIER_BRIGHT_COLORS[barrier.color] || BARRIER_BRIGHT_COLORS.White;
       const bx = Math.round(barrier.x),
         by = Math.round(barrier.y);
       const bw = Math.round(barrier.w),
@@ -579,44 +659,62 @@ function GameCanvas({
       const hasBelow = s.barrierTopEdges.has(
         `${barrier.color},${barrier.x},${barrier.y + barrier.h}`,
       );
-      // Filled body
-      ctx.fillStyle = color;
-      ctx.globalAlpha = 0.55;
-      ctx.fillRect(bx, by, bw, bh);
-      ctx.globalAlpha = 1;
-      // Border — draw as individual segments, skipping shared internal edges
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+
+      ctx.save();
       ctx.beginPath();
-      // Left edge
-      ctx.moveTo(bx + 1, by + 1);
-      ctx.lineTo(bx + 1, by + bh - 1);
-      // Right edge
-      ctx.moveTo(bx + bw - 1, by + 1);
-      ctx.lineTo(bx + bw - 1, by + bh - 1);
-      // Top edge — only if no neighbor above
-      if (!hasAbove) {
-        ctx.moveTo(bx + 1, by + 1);
-        ctx.lineTo(bx + bw - 1, by + 1);
-      }
-      // Bottom edge — only if no neighbor below
-      if (!hasBelow) {
-        ctx.moveTo(bx + 1, by + bh - 1);
-        ctx.lineTo(bx + bw - 1, by + bh - 1);
+      ctx.rect(bx, by, bw, bh);
+      ctx.clip();
+
+      // Vertical gradient fill — brighter at edges, slightly dimmer in middle
+      const bgGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
+      bgGrad.addColorStop(0,   hexToRgba(color, 0.72));
+      bgGrad.addColorStop(0.45, hexToRgba(color, 0.48));
+      bgGrad.addColorStop(1,   hexToRgba(color, 0.68));
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(bx, by, bw, bh);
+
+      // Diagonal scrolling stripes (45°) — clipped to barrier bounds
+      ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = bright;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let sx = bx - bh + stripeOffset; sx < bx + bw + stripeSpacing; sx += stripeSpacing) {
+        ctx.moveTo(sx, by + bh);
+        ctx.lineTo(sx + bh, by);
       }
       ctx.stroke();
-      // Inner pattern lines (vertical stripes)
-      ctx.strokeStyle = color;
-      ctx.globalAlpha = 0.4;
-      ctx.lineWidth = 1;
-      const stripeSpacing = 12;
-      for (let sx = bx + stripeSpacing; sx < bx + bw; sx += stripeSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(Math.round(sx), by);
-        ctx.lineTo(Math.round(sx), by + bh);
-        ctx.stroke();
-      }
       ctx.globalAlpha = 1;
+
+      ctx.restore(); // remove clip
+
+      // Side border lines (left + right always; top/bottom only at open edges)
+      ctx.strokeStyle = hexToRgba(color, 0.7);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(bx + 1, by);
+      ctx.lineTo(bx + 1, by + bh);
+      ctx.moveTo(bx + bw - 1, by);
+      ctx.lineTo(bx + bw - 1, by + bh);
+      ctx.stroke();
+
+      // Bright cap lines with glow at open edges
+      if (!hasAbove) {
+        ctx.save();
+        ctx.shadowColor = bright;
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = bright;
+        ctx.fillRect(bx, by, bw, 2);
+        ctx.restore();
+      }
+      if (!hasBelow) {
+        ctx.save();
+        ctx.shadowColor = bright;
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = bright;
+        ctx.fillRect(bx, by + bh - 2, bw, 2);
+        ctx.restore();
+      }
+
       if (settings?.highContrast) {
         ctx.strokeStyle = HIGH_CONTRAST_WHITE;
         ctx.lineWidth = 2;
@@ -723,19 +821,30 @@ function GameCanvas({
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate((hazard.rotation * Math.PI) / 180);
-        ctx.fillStyle = SPIKE_COLORS.body;
+
+        // Spike body path
         ctx.beginPath();
         ctx.moveTo(-TILE / 2 + 2, TILE / 2);
         ctx.lineTo(0, -TILE / 2 + 2);
         ctx.lineTo(TILE / 2 - 2, TILE / 2);
         ctx.closePath();
+
+        // Metallic gradient: dark base → lighter near tip
+        const spikeGrad = ctx.createLinearGradient(0, TILE / 2, 0, -TILE / 2 + 2);
+        spikeGrad.addColorStop(0,    "#444455");
+        spikeGrad.addColorStop(0.55, SPIKE_COLORS.body);
+        spikeGrad.addColorStop(1,    SPIKE_COLORS.edge);
+        ctx.fillStyle = spikeGrad;
         ctx.fill();
+
+        // Left-face highlight simulating a light source from the upper-left
         ctx.strokeStyle = SPIKE_COLORS.edge;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(-TILE / 2 + 2, TILE / 2);
         ctx.lineTo(0, -TILE / 2 + 2);
         ctx.stroke();
+
         ctx.restore();
       }
       if (settings?.highContrast) {
@@ -772,6 +881,20 @@ function GameCanvas({
       ctx.font = "bold 10px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("EXIT", dx + dw / 2, dy + dh / 2 + 4);
+    }
+
+    // Particles (drawn beneath the player so they feel embedded in the world)
+    if (s.particles.length > 0) {
+      for (const pt of s.particles) {
+        const radius = Math.max(1, Math.round(pt.life * 4));
+        ctx.save();
+        ctx.globalAlpha = pt.life * 0.85;
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(Math.round(pt.x), Math.round(pt.y), radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     // Player sprite (pre-rendered offscreen canvases — no per-frame alpha compositing)
@@ -835,9 +958,29 @@ function GameCanvas({
             {settings?.showTimer && (
               <span style={styles.hudTimer}>{formatTime(hudData.time)}</span>
             )}
-            <span style={styles.hudKeys}>
-              Keys {hudData.keysCollected}/{hudData.totalKeys}
-            </span>
+            {hudData.totalKeys > 0 && (
+              <div style={styles.hudKeys}>
+                {(hudData.keyStates || []).map((k, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      display: "inline-block",
+                      width: 12,
+                      height: 12,
+                      borderRadius: "50%",
+                      background: k.collected
+                        ? "#444466"
+                        : (BARRIER_COLORS[k.color] || "#aaa"),
+                      opacity: k.collected ? 0.45 : 1,
+                      border: k.collected
+                        ? "1px solid rgba(255,255,255,0.08)"
+                        : "1px solid rgba(255,255,255,0.25)",
+                      flexShrink: 0,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <button
             style={styles.pauseBtn}
@@ -1049,10 +1192,7 @@ const styles = {
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: "6px",
-    padding: "3px 9px",
-    color: "var(--game-text)",
-    fontSize: "12px",
-    fontWeight: "600",
+    padding: "5px 9px",
   },
   pauseBtn: {
     padding: "5px 13px",

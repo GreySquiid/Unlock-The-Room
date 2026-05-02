@@ -10,6 +10,16 @@ export const BARRIER_COLORS = {
   White:  '#E8E8E8',
 };
 
+// Brightened shades of each barrier color for cap lines and glow highlights
+export const BARRIER_BRIGHT_COLORS = {
+  Red:    '#FF8F8E',
+  Blue:   '#75BDFF',
+  Green:  '#9AE037',
+  Yellow: '#FFD466',
+  Purple: '#B0A8FF',
+  White:  '#FFFFFF',
+};
+
 // Object-type colors for the level editor and AI generator preview grid
 export const OBJECT_COLORS = {
   Platform:  '#4a4a6a',
