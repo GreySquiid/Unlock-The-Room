@@ -25,7 +25,8 @@ public class UsersController : ControllerBase
     public IActionResult DemoResetStatus()
     {
         var email = User.FindFirstValue(ClaimTypes.Email);
-        var demoEmail = _configuration.GetValue<string>("Features:DemoEmail") ?? "demo@greysquiid.com";
+        var demoEmail = _configuration.GetValue<string>("Features:DemoEmail")
+            ?? throw new InvalidOperationException("Features:DemoEmail not configured");
         if (email != demoEmail) return Forbid();
 
         var last = DemoResetService.LastResetUtc;

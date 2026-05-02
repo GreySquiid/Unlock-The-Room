@@ -41,6 +41,97 @@ function stopLoop() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Polygon-merge helpers — run once at level load, never per frame
+// ---------------------------------------------------------------------------
+
+// Decompose a list of objects into TILE-aligned cells, flood-fill into
+// connected groups, and return them with their bounding boxes.
+// groupKeyFn(obj) → string — only cells with the same key can merge.
+// cellW / cellH  — the grid unit (TILE×TILE for barriers/platforms,
+//                   TILE×(TILE/2) or (TILE/2)×TILE for kill bricks).
+function buildGroups(objects, groupKeyFn, cellW, cellH) {
+  const cellMap = new Map();
+  for (const obj of objects) {
+    const gKey = groupKeyFn(obj);
+    const cols = Math.max(1, Math.round(obj.w / cellW));
+    const rows = Math.max(1, Math.round(obj.h / cellH));
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cx = Math.round(obj.x) + c * cellW;
+        const cy = Math.round(obj.y) + r * cellH;
+        const k = `${cx},${cy}`;
+        if (!cellMap.has(k)) cellMap.set(k, { x: cx, y: cy, groupKey: gKey });
+      }
+    }
+  }
+
+  const visited = new Set();
+  const groups = [];
+
+  for (const [startKey, startCell] of cellMap) {
+    if (visited.has(startKey)) continue;
+    const gKey = startCell.groupKey;
+    const cells = [];
+    const cellSet = new Set();
+    const queue = [startKey];
+
+    while (queue.length > 0) {
+      const k = queue.shift();
+      if (visited.has(k)) continue;
+      const cell = cellMap.get(k);
+      if (!cell || cell.groupKey !== gKey) continue;
+      visited.add(k);
+      cells.push(cell);
+      cellSet.add(k);
+      const { x, y } = cell;
+      for (const nk of [
+        `${x - cellW},${y}`,
+        `${x + cellW},${y}`,
+        `${x},${y - cellH}`,
+        `${x},${y + cellH}`,
+      ]) {
+        if (!visited.has(nk) && cellMap.has(nk) && cellMap.get(nk).groupKey === gKey)
+          queue.push(nk);
+      }
+    }
+
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of cells) {
+      if (c.x < x0) x0 = c.x;
+      if (c.y < y0) y0 = c.y;
+      if (c.x + cellW > x1) x1 = c.x + cellW;
+      if (c.y + cellH > y1) y1 = c.y + cellH;
+    }
+    groups.push({ groupKey: gKey, cells, cellSet, bbox: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } });
+  }
+
+  return groups;
+}
+
+function buildBarrierGroups(lockedBarriers) {
+  return buildGroups(lockedBarriers, (b) => b.color, TILE, TILE);
+}
+
+function buildPlatformGroups(platforms) {
+  return buildGroups(platforms, () => "plat", TILE, TILE);
+}
+
+function buildKillBrickGroups(killbricks) {
+  const groups = [];
+  // Horizontal strips (rotation 0 = bottom-half, 180 = top-half) — TILE wide × TILE/2 tall
+  for (const rot of [0, 180]) {
+    const sub = killbricks.filter((h) => h.rotation === rot);
+    if (sub.length > 0) groups.push(...buildGroups(sub, () => `kb${rot}`, TILE, TILE / 2));
+  }
+  // Vertical strips (rotation 90 = right-half, 270 = left-half) — TILE/2 wide × TILE tall
+  for (const rot of [90, 270]) {
+    const sub = killbricks.filter((h) => h.rotation === rot);
+    if (sub.length > 0) groups.push(...buildGroups(sub, () => `kb${rot}`, TILE / 2, TILE));
+  }
+  return groups;
+}
+
 // Sprite sheet: 768x384, 128x160 per frame — defined once at module scope
 const SPRITE_FRAMES = {
   idle: [
@@ -230,47 +321,19 @@ function GameCanvas({
         keyStates: keys.map((k) => ({ color: k.color, collected: false })),
       });
 
-      // Fix 6 — cache platform adjacency sets (platforms never move)
-      stateRef.current.platBottomEdges = new Set(
-        platforms.map((p) => `${p.x},${p.y + p.h}`),
-      );
-      stateRef.current.platTopEdges = new Set(
-        platforms.map((p) => `${p.x},${p.y}`),
-      );
-      // Left/right platform adjacency (no explicit side borders to skip, but sets available for future use)
-      stateRef.current.platRightEdges = new Set(
-        platforms.map((p) => `${p.x + p.w},${p.y}`),
-      );
-      stateRef.current.platLeftEdges = new Set(
-        platforms.map((p) => `${p.x},${p.y}`),
-      );
-
-      // Kill-brick adjacency sets (edges by pixel coordinate, built once at level load)
+      // Polygon groups — built once at level load, used only for rendering.
+      // Gameplay collision uses the original platforms/barriers/hazards arrays.
+      stateRef.current.platformGroups = buildPlatformGroups(platforms);
       const killbricks = hazards.filter((h) => h.hazardType === "KillBrick");
-      stateRef.current.kbTopEdges    = new Set(killbricks.map((h) => `${Math.round(h.x)},${Math.round(h.y)}`));
-      stateRef.current.kbBottomEdges = new Set(killbricks.map((h) => `${Math.round(h.x)},${Math.round(h.y + h.h)}`));
-      stateRef.current.kbRightEdges  = new Set(killbricks.map((h) => `${Math.round(h.x + h.w)},${Math.round(h.y)}`));
+      stateRef.current.killBrickGroups = buildKillBrickGroups(killbricks);
 
-      // Fix 7 — cache barrier adjacency sets and allSolids; rebuild only when barrier state changes
-      const rebuildBarrierEdges = (barriers) => {
+      const rebuildBarrierGroups = (barriers) => {
         const locked = barriers.filter((b) => !b.unlocked);
-        stateRef.current.barrierBottomEdges = new Set(
-          locked.map((b) => `${b.color},${b.x},${b.y + b.h}`),
-        );
-        stateRef.current.barrierTopEdges = new Set(
-          locked.map((b) => `${b.color},${b.x},${b.y}`),
-        );
-        // Left/right barrier adjacency — same-color barriers only
-        stateRef.current.barrierRightEdges = new Set(
-          locked.map((b) => `${b.color},${b.x + b.w},${b.y}`),
-        );
-        stateRef.current.barrierLeftEdges = new Set(
-          locked.map((b) => `${b.color},${b.x},${b.y}`),
-        );
+        stateRef.current.barrierGroups = buildBarrierGroups(locked);
         stateRef.current.allSolids = [...stateRef.current.platforms, ...locked];
       };
-      stateRef.current.rebuildBarrierEdges = rebuildBarrierEdges;
-      rebuildBarrierEdges(barriers);
+      stateRef.current.rebuildBarrierGroups = rebuildBarrierGroups;
+      rebuildBarrierGroups(barriers);
 
       // Fix 8 — pre-scale background into an offscreen canvas at exact game resolution
       stateRef.current.bgImage = null;
@@ -541,7 +604,7 @@ function GameCanvas({
         for (const barrier of s.barriers) {
           if (barrier.color === key.color) barrier.unlocked = true;
         }
-        s.rebuildBarrierEdges(s.barriers);
+        s.rebuildBarrierGroups(s.barriers);
         if (!reducedMotion) {
           spawnParticles(
             s,
@@ -565,7 +628,7 @@ function GameCanvas({
         for (const key of s.keys) key.collected = false;
         s.collectedKeys = 0;
         for (const barrier of s.barriers) barrier.unlocked = false;
-        s.rebuildBarrierEdges(s.barriers);
+        s.rebuildBarrierGroups(s.barriers);
       }
     }
 
@@ -633,119 +696,113 @@ function GameCanvas({
       ctx.fillRect(0, 0, W, H);
     }
 
-    // Platforms (adjacency sets cached at load time in s.platBottomEdges / s.platTopEdges)
-    for (const plat of s.platforms) {
-      const px = Math.round(plat.x),
-        py = Math.round(plat.y);
-      const pw = Math.round(plat.w),
-        ph = Math.round(plat.h);
-      const hasAbove = s.platBottomEdges.has(`${plat.x},${plat.y}`);
-      const hasBelow = s.platTopEdges.has(`${plat.x},${plat.y + plat.h}`);
-      // Body
-      ctx.fillStyle = PLATFORM_COLORS.body;
-      ctx.fillRect(px, py, pw, ph);
-      // Top highlight — skip when a platform is directly above (would create seam)
-      if (!hasAbove) {
-        ctx.fillStyle = PLATFORM_COLORS.topHighlight;
-        ctx.fillRect(px, py, pw, 3);
-      }
-      // Inner surface: base is ph-4 starting at y+3; adjust for neighbors
-      const innerTopY = hasAbove ? py : py + 3;
-      const innerH = ph - 4 + (hasAbove ? 3 : 0) + (hasBelow ? 2 : 0);
-      ctx.fillStyle = PLATFORM_COLORS.inner;
-      ctx.fillRect(px, innerTopY, pw, innerH);
-      // Bottom shadow strip — skip when a platform is directly below
-      if (!hasBelow) {
-        ctx.fillStyle = PLATFORM_COLORS.bottomShadow;
-        ctx.fillRect(px, py + ph - 2, pw, 2);
+    // Platforms — per TILE cell from merged groups; adjacency from group cellSet
+    for (const group of s.platformGroups) {
+      const { cells, cellSet } = group;
+      for (const cell of cells) {
+        const px = cell.x, py = cell.y;
+        const hasAbove = cellSet.has(`${px},${py - TILE}`);
+        const hasBelow = cellSet.has(`${px},${py + TILE}`);
+        ctx.fillStyle = PLATFORM_COLORS.body;
+        ctx.fillRect(px, py, TILE, TILE);
+        if (!hasAbove) {
+          ctx.fillStyle = PLATFORM_COLORS.topHighlight;
+          ctx.fillRect(px, py, TILE, 3);
+        }
+        const innerTopY = hasAbove ? py : py + 3;
+        const innerH = TILE - 4 + (hasAbove ? 3 : 0) + (hasBelow ? 2 : 0);
+        ctx.fillStyle = PLATFORM_COLORS.inner;
+        ctx.fillRect(px, innerTopY, TILE, innerH);
+        if (!hasBelow) {
+          ctx.fillStyle = PLATFORM_COLORS.bottomShadow;
+          ctx.fillRect(px, py + TILE - 2, TILE, 2);
+        }
       }
     }
 
-    // Barriers — animated energy field
+    // Barriers — animated energy field, rendered per merged group.
+    // Gradient and stripe origin come from the group bounding box so the pattern
+    // is continuous across all same-color adjacent cells (the key seam fix).
     const stripeSpacing = 18;
-    // Scrolling offset advances ~1px per frame at 60fps; frozen when reduced motion
     const stripeOffset = reducedMotion ? 0 : (Date.now() / 60) % stripeSpacing;
-    for (const barrier of s.barriers) {
-      if (barrier.unlocked) continue;
-      const color = BARRIER_COLORS[barrier.color] || BARRIER_COLORS.White;
-      const bright = BARRIER_BRIGHT_COLORS[barrier.color] || BARRIER_BRIGHT_COLORS.White;
-      const bx = Math.round(barrier.x),
-        by = Math.round(barrier.y);
-      const bw = Math.round(barrier.w),
-        bh = Math.round(barrier.h);
-      const hasAbove = s.barrierBottomEdges.has(
-        `${barrier.color},${barrier.x},${barrier.y}`,
-      );
-      const hasBelow = s.barrierTopEdges.has(
-        `${barrier.color},${barrier.x},${barrier.y + barrier.h}`,
-      );
-      // Same-color barrier immediately to left/right → skip that side border
-      const hasLeft  = s.barrierRightEdges?.has(`${barrier.color},${barrier.x},${barrier.y}`);
-      const hasRight = s.barrierLeftEdges?.has(`${barrier.color},${barrier.x + barrier.w},${barrier.y}`);
+    for (const group of s.barrierGroups) {
+      const color = BARRIER_COLORS[group.groupKey] || BARRIER_COLORS.White;
+      const bright = BARRIER_BRIGHT_COLORS[group.groupKey] || BARRIER_BRIGHT_COLORS.White;
+      const { bbox, cells, cellSet } = group;
+      const { x: gbx, y: gby, w: gbw, h: gbh } = bbox;
 
+      // Clip rendering to the merged polygon (union of all group cells)
       ctx.save();
       ctx.beginPath();
-      ctx.rect(bx, by, bw, bh);
+      for (const cell of cells) ctx.rect(cell.x, cell.y, TILE, TILE);
       ctx.clip();
 
-      // Vertical gradient fill — brighter at edges, slightly dimmer in middle
-      const bgGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
-      bgGrad.addColorStop(0,   hexToRgba(color, 0.72));
+      // Gradient — origin is group bbox so it spans the full merged shape
+      const bgGrad = ctx.createLinearGradient(gbx, gby, gbx, gby + gbh);
+      bgGrad.addColorStop(0,    hexToRgba(color, 0.72));
       bgGrad.addColorStop(0.45, hexToRgba(color, 0.48));
-      bgGrad.addColorStop(1,   hexToRgba(color, 0.68));
+      bgGrad.addColorStop(1,    hexToRgba(color, 0.68));
       ctx.fillStyle = bgGrad;
-      ctx.fillRect(bx, by, bw, bh);
+      ctx.fillRect(gbx, gby, gbw, gbh);
 
-      // Diagonal scrolling stripes (45°) — clipped to barrier bounds
+      // Diagonal scrolling stripes — origin is group bbox so phase is continuous
       ctx.globalAlpha = 0.2;
       ctx.strokeStyle = bright;
       ctx.lineWidth = 3;
       ctx.beginPath();
-      for (let sx = bx - bh + stripeOffset; sx < bx + bw + stripeSpacing; sx += stripeSpacing) {
-        ctx.moveTo(sx, by + bh);
-        ctx.lineTo(sx + bh, by);
+      for (let sx = gbx - gbh + stripeOffset; sx < gbx + gbw + stripeSpacing; sx += stripeSpacing) {
+        ctx.moveTo(sx, gby + gbh);
+        ctx.lineTo(sx + gbh, gby);
       }
       ctx.stroke();
       ctx.globalAlpha = 1;
 
-      ctx.restore(); // remove clip
+      ctx.restore(); // end clip
 
-      // Side border lines — skip each side when a same-color barrier abuts it
+      // Side borders — only at left/right perimeter cells
       ctx.strokeStyle = hexToRgba(color, 0.7);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      if (!hasLeft) {
-        ctx.moveTo(bx + 1, by);
-        ctx.lineTo(bx + 1, by + bh);
-      }
-      if (!hasRight) {
-        ctx.moveTo(bx + bw - 1, by);
-        ctx.lineTo(bx + bw - 1, by + bh);
+      for (const cell of cells) {
+        const { x: cx, y: cy } = cell;
+        if (!cellSet.has(`${cx - TILE},${cy}`)) {
+          ctx.moveTo(cx + 0.5, cy);
+          ctx.lineTo(cx + 0.5, cy + TILE);
+        }
+        if (!cellSet.has(`${cx + TILE},${cy}`)) {
+          ctx.moveTo(cx + TILE - 0.5, cy);
+          ctx.lineTo(cx + TILE - 0.5, cy + TILE);
+        }
       }
       ctx.stroke();
 
-      // Bright cap lines with glow at open edges
-      if (!hasAbove) {
-        ctx.save();
-        ctx.shadowColor = bright;
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = bright;
-        ctx.fillRect(bx, by, bw, 2);
-        ctx.restore();
-      }
-      if (!hasBelow) {
-        ctx.save();
-        ctx.shadowColor = bright;
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = bright;
-        ctx.fillRect(bx, by + bh - 2, bw, 2);
-        ctx.restore();
+      // Cap lines with glow — only at top/bottom perimeter cells
+      for (const cell of cells) {
+        const { x: cx, y: cy } = cell;
+        if (!cellSet.has(`${cx},${cy - TILE}`)) {
+          ctx.save();
+          ctx.shadowColor = bright;
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = bright;
+          ctx.fillRect(cx, cy, TILE, 2);
+          ctx.restore();
+        }
+        if (!cellSet.has(`${cx},${cy + TILE}`)) {
+          ctx.save();
+          ctx.shadowColor = bright;
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = bright;
+          ctx.fillRect(cx, cy + TILE - 2, TILE, 2);
+          ctx.restore();
+        }
       }
 
       if (settings?.highContrast) {
-        ctx.strokeStyle = HIGH_CONTRAST_WHITE;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(bx + 2, by + 2, bw - 4, bh - 4);
+        for (const cell of cells) {
+          ctx.strokeStyle = HIGH_CONTRAST_WHITE;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(cell.x + 2, cell.y + 2, TILE - 4, TILE - 4);
+        }
       }
     }
 
@@ -793,67 +850,9 @@ function GameCanvas({
       }
     }
 
-    // Hazards (spikes + kill bricks)
+    // Hazards — spikes only (kill bricks rendered from groups below)
     for (const hazard of s.hazards) {
-      if (hazard.hazardType === "Platform") continue;
-
-      if (hazard.hazardType === "KillBrick") {
-        const hx = Math.round(hazard.x),
-          hy = Math.round(hazard.y);
-        const hw = Math.round(hazard.w),
-          hh = Math.round(hazard.h);
-        const isVertical = hazard.rotation === 90 || hazard.rotation === 270;
-
-        // Adjacency — used to extend core strips and suppress edge lines at seams
-        const kbHasAbove = s.kbBottomEdges?.has(`${hx},${hy}`);
-        const kbHasBelow = s.kbTopEdges?.has(`${hx},${hy + hh}`);
-        const kbHasLeft  = s.kbRightEdges?.has(`${hx},${hy}`);
-        const kbHasRight = s.kbTopEdges?.has(`${hx + hw},${hy}`); // same set as top-left corners
-
-        ctx.fillStyle = KILLBRICK_BG;
-        ctx.fillRect(hx, hy, hw, hh);
-        // Gradient runs across the thin dimension of the strip
-        const laserGrad = isVertical
-          ? ctx.createLinearGradient(hx, hy, hx + hw, hy)
-          : ctx.createLinearGradient(hx, hy, hx, hy + hh);
-        laserGrad.addColorStop(0, "rgba(160, 0, 0, 0.95)");
-        laserGrad.addColorStop(0.3, "rgba(240, 20, 20, 1.0)");
-        laserGrad.addColorStop(0.5, "rgba(255, 60, 60, 1.0)");
-        laserGrad.addColorStop(0.7, "rgba(240, 20, 20, 1.0)");
-        laserGrad.addColorStop(1, "rgba(160, 0, 0, 0.95)");
-        ctx.fillStyle = laserGrad;
-        ctx.fillRect(hx, hy, hw, hh);
-        // Bright core strip — margins eliminated at abutting edges to close the seam
-        if (isVertical) {
-          const coreW = Math.max(2, Math.floor(hw * 0.22));
-          const coreX = hx + Math.floor((hw - coreW) / 2);
-          const coreTopMargin    = kbHasAbove ? 0 : 3;
-          const coreBottomMargin = kbHasBelow ? 0 : 3;
-          ctx.fillStyle = "rgba(255, 210, 210, 0.88)";
-          ctx.fillRect(coreX, hy + coreTopMargin, coreW, hh - coreTopMargin - coreBottomMargin);
-          if (!kbHasLeft) {
-            ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
-            ctx.fillRect(hx, hy, 1, hh);
-          }
-        } else {
-          const coreH = Math.max(2, Math.floor(hh * 0.22));
-          const coreY = hy + Math.floor((hh - coreH) / 2);
-          const coreLeftMargin  = kbHasLeft  ? 0 : 3;
-          const coreRightMargin = kbHasRight ? 0 : 3;
-          ctx.fillStyle = "rgba(255, 210, 210, 0.88)";
-          ctx.fillRect(hx + coreLeftMargin, coreY, hw - coreLeftMargin - coreRightMargin, coreH);
-          if (!kbHasAbove) {
-            ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
-            ctx.fillRect(hx, hy, hw, 1);
-          }
-        }
-        if (settings?.highContrast) {
-          ctx.strokeStyle = HIGH_CONTRAST_BORDER;
-          ctx.lineWidth = 2;
-          ctx.strokeRect(hx, hy, hw, hh);
-        }
-        continue;
-      }
+      if (hazard.hazardType === "Platform" || hazard.hazardType === "KillBrick") continue;
 
       const spikeCols = Math.floor(hazard.w / TILE);
       for (let i = 0; i < spikeCols; i++) {
@@ -898,6 +897,64 @@ function GameCanvas({
           Math.round(hazard.w),
           Math.round(hazard.h),
         );
+      }
+    }
+
+    // Kill bricks — rendered per merged group; core-strip margins only at group endpoints
+    for (const group of s.killBrickGroups) {
+      const isVertical = group.groupKey === "kb90" || group.groupKey === "kb270";
+      const cellW = isVertical ? TILE / 2 : TILE;
+      const cellH = isVertical ? TILE : TILE / 2;
+      const { cells, cellSet } = group;
+
+      for (const cell of cells) {
+        const hx = cell.x, hy = cell.y;
+
+        ctx.fillStyle = KILLBRICK_BG;
+        ctx.fillRect(hx, hy, cellW, cellH);
+
+        // Gradient across thin dimension (no discontinuity: all cells share y/h or x/w)
+        const laserGrad = isVertical
+          ? ctx.createLinearGradient(hx, hy, hx + cellW, hy)
+          : ctx.createLinearGradient(hx, hy, hx, hy + cellH);
+        laserGrad.addColorStop(0,   "rgba(160, 0, 0, 0.95)");
+        laserGrad.addColorStop(0.3, "rgba(240, 20, 20, 1.0)");
+        laserGrad.addColorStop(0.5, "rgba(255, 60, 60, 1.0)");
+        laserGrad.addColorStop(0.7, "rgba(240, 20, 20, 1.0)");
+        laserGrad.addColorStop(1,   "rgba(160, 0, 0, 0.95)");
+        ctx.fillStyle = laserGrad;
+        ctx.fillRect(hx, hy, cellW, cellH);
+
+        // Core strip — 3px end-cap margin only where group has no neighbour
+        if (isVertical) {
+          const coreW = Math.max(2, Math.floor(cellW * 0.22));
+          const coreX = hx + Math.floor((cellW - coreW) / 2);
+          const hasAbove = cellSet.has(`${hx},${hy - cellH}`);
+          const hasBelow = cellSet.has(`${hx},${hy + cellH}`);
+          ctx.fillStyle = "rgba(255, 210, 210, 0.88)";
+          ctx.fillRect(coreX, hy + (hasAbove ? 0 : 3), coreW, cellH - (hasAbove ? 0 : 3) - (hasBelow ? 0 : 3));
+          if (!cellSet.has(`${hx - cellW},${hy}`)) {
+            ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
+            ctx.fillRect(hx, hy, 1, cellH);
+          }
+        } else {
+          const coreH = Math.max(2, Math.floor(cellH * 0.22));
+          const coreY = hy + Math.floor((cellH - coreH) / 2);
+          const hasLeft  = cellSet.has(`${hx - cellW},${hy}`);
+          const hasRight = cellSet.has(`${hx + cellW},${hy}`);
+          ctx.fillStyle = "rgba(255, 210, 210, 0.88)";
+          ctx.fillRect(hx + (hasLeft ? 0 : 3), coreY, cellW - (hasLeft ? 0 : 3) - (hasRight ? 0 : 3), coreH);
+          if (!cellSet.has(`${hx},${hy - cellH}`)) {
+            ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
+            ctx.fillRect(hx, hy, cellW, 1);
+          }
+        }
+
+        if (settings?.highContrast) {
+          ctx.strokeStyle = HIGH_CONTRAST_BORDER;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(hx, hy, cellW, cellH);
+        }
       }
     }
 

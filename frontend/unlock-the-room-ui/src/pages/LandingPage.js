@@ -152,14 +152,22 @@ function LandingPage() {
             </div>
 
             <div style={styles.screenshotCol}>
-              <div style={styles.screenshotPlaceholder}>
-                <div style={styles.screenshotLabel}>AI Generator</div>
-                <div style={styles.screenshotSub}>Dashboard → AI Generator generates a level from constraints</div>
-              </div>
-              <div style={styles.screenshotPlaceholder}>
-                <div style={styles.screenshotLabel}>Level Management</div>
-                <div style={styles.screenshotSub}>Publish, edit, and reorder levels from the dashboard</div>
-              </div>
+              <figure style={styles.screenshotFigure}>
+                <img
+                  src="/screenshots/AiGenerator.png"
+                  alt="AI Level Generation — constraint form and generated level preview"
+                  style={styles.screenshotImg}
+                />
+                <figcaption style={styles.screenshotCaption}>AI Level Generation</figcaption>
+              </figure>
+              <figure style={styles.screenshotFigure}>
+                <img
+                  src="/screenshots/Gameplay.png"
+                  alt="Polished gameplay — keys, barriers, and animated canvas art"
+                  style={styles.screenshotImg}
+                />
+                <figcaption style={styles.screenshotCaption}>Polished Gameplay</figcaption>
+              </figure>
             </div>
           </div>
         </div>
@@ -302,20 +310,27 @@ const styles = {
     fontWeight: '600',
     letterSpacing: '0.2px',
   },
-  screenshotCol: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  screenshotPlaceholder: {
-    background: 'var(--bg)',
-    border: '1px solid var(--border-light)',
-    borderRadius: '10px',
-    padding: '1.5rem',
-    minHeight: '120px',
+  screenshotCol: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  screenshotFigure: {
+    margin: 0,
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
     gap: '6px',
   },
-  screenshotLabel: { fontSize: '14px', fontWeight: '600', color: 'var(--text)' },
-  screenshotSub: { fontSize: '12px', color: 'var(--text-subtle)' },
+  screenshotImg: {
+    width: '100%',
+    height: 'auto',
+    borderRadius: '10px',
+    border: '1px solid var(--border-light)',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+    display: 'block',
+  },
+  screenshotCaption: {
+    fontSize: '12px',
+    color: 'var(--text-muted)',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
 
   /* Footer */
   footer: {

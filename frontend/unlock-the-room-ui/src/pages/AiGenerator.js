@@ -1,8 +1,56 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../services/api";
 import { BARRIER_COLORS, OBJECT_COLORS } from "../gameColors";
+
+const AI_SQUID_FRAMES = [
+  [0,   0, 128, 160],
+  [128, 0, 128, 160],
+  [256, 0, 128, 160],
+  [384, 0, 128, 160],
+];
+const aiReducedMotion =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function SquidLoader() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width  = 48;
+    canvas.height = 60;
+    const img = new Image();
+    img.src = "/assets/squid-sprite.png";
+    let frame = 0;
+    let tick  = 0;
+    let loopId;
+    const draw = (f) => {
+      ctx.clearRect(0, 0, 48, 60);
+      if (img.complete && img.naturalWidth > 0) {
+        const [sx, sy, sw, sh] = AI_SQUID_FRAMES[f];
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 48, 60);
+      }
+    };
+    if (aiReducedMotion) {
+      img.onload = () => draw(0);
+      if (img.complete && img.naturalWidth > 0) draw(0);
+      return;
+    }
+    const animate = () => {
+      tick++;
+      if (tick % 8 === 0) frame = (frame + 1) % AI_SQUID_FRAMES.length;
+      draw(frame);
+      loopId = requestAnimationFrame(animate);
+    };
+    img.onload = () => { loopId = requestAnimationFrame(animate); };
+    if (img.complete && img.naturalWidth > 0) loopId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(loopId);
+  }, []);
+  return <canvas ref={canvasRef} style={{ imageRendering: "pixelated", display: "block" }} />;
+}
 
 function AiGenerator() {
   const [searchParams] = useSearchParams();
@@ -344,10 +392,10 @@ function AiGenerator() {
             )}
             {loading && (
               <div style={styles.emptyState}>
-                <p style={styles.emptyTitle}>Generating your level...</p>
+                <SquidLoader />
+                <p style={styles.emptyTitle}>Generating your level…</p>
                 <p style={styles.emptyText}>
-                  The AI is designing your puzzle. This usually takes 5–10
-                  seconds.
+                  The AI is designing your puzzle. This usually takes 5–10 seconds.
                 </p>
               </div>
             )}

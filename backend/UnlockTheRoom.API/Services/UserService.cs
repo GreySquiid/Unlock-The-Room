@@ -87,7 +87,8 @@ public class UserService
 
     public async Task<AuthResponseDto?> DemoLoginAsync()
     {
-        var demoEmail = _configuration.GetValue<string>("Features:DemoEmail") ?? "demo@greysquiid.com";
+        var demoEmail = _configuration.GetValue<string>("Features:DemoEmail")
+            ?? throw new InvalidOperationException("Features:DemoEmail not configured");
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == demoEmail);
 

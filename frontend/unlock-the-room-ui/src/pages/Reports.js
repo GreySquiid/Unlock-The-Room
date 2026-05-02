@@ -6,6 +6,54 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer,
 } from "recharts";
 
+const RPT_SQUID_FRAMES = [
+  [0,   0, 128, 160],
+  [128, 0, 128, 160],
+  [256, 0, 128, 160],
+  [384, 0, 128, 160],
+];
+const rptReducedMotion =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function ReportSquidLoader() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width  = 48;
+    canvas.height = 60;
+    const img = new Image();
+    img.src = "/assets/squid-sprite.png";
+    let frame = 0;
+    let tick  = 0;
+    let loopId;
+    const draw = (f) => {
+      ctx.clearRect(0, 0, 48, 60);
+      if (img.complete && img.naturalWidth > 0) {
+        const [sx, sy, sw, sh] = RPT_SQUID_FRAMES[f];
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 48, 60);
+      }
+    };
+    if (rptReducedMotion) {
+      img.onload = () => draw(0);
+      if (img.complete && img.naturalWidth > 0) draw(0);
+      return;
+    }
+    const animate = () => {
+      tick++;
+      if (tick % 8 === 0) frame = (frame + 1) % RPT_SQUID_FRAMES.length;
+      draw(frame);
+      loopId = requestAnimationFrame(animate);
+    };
+    img.onload = () => { loopId = requestAnimationFrame(animate); };
+    if (img.complete && img.naturalWidth > 0) loopId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(loopId);
+  }, []);
+  return <canvas ref={canvasRef} style={{ imageRendering: "pixelated", display: "block" }} />;
+}
+
 // Read CSS custom-property values once at component scope — same pattern as Phase 1 canvas code.
 // Falls back to the literal values from DESIGN.md if getComputedStyle isn't available (e.g., SSR).
 function readToken(prop, fallback) {
@@ -149,6 +197,13 @@ function Reports() {
             {loading ? "Generating..." : "Generate report"}
           </button>
         </form>
+
+        {loading && !report && (
+          <div style={styles.reportLoading}>
+            <ReportSquidLoader />
+            <p style={styles.reportLoadingLabel}>Generating report…</p>
+          </div>
+        )}
 
         {report && (
           <>
@@ -342,6 +397,18 @@ const styles = {
     fontSize: "13px",
     fontWeight: "500",
     cursor: "pointer",
+  },
+  reportLoading: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "12px",
+    padding: "3rem 0",
+  },
+  reportLoadingLabel: {
+    fontSize: "13px",
+    color: "var(--text-subtle)",
+    margin: 0,
   },
   statsGrid: {
     display: "grid",

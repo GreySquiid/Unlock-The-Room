@@ -97,17 +97,6 @@ function Levels() {
     }
   };
 
-  const handleEdit = (level) => {
-    setEditingLevel(level);
-    setForm({
-      name: level.name,
-      difficulty: level.difficulty,
-      rows: level.rows,
-      columns: level.columns,
-    });
-    setShowForm(true);
-  };
-
   const togglePublish = async (level) => {
     await api.put(`/Levels/${level.id}`, {
       name: level.name,
@@ -403,7 +392,23 @@ function Levels() {
           />
         )}
 
-        {!reorderMode && <table style={styles.table}>
+        {!reorderMode && levels.length === 0 && (
+          <div style={styles.emptyState}>
+            <div style={styles.emptySquid}>
+              <div style={{ width: 48, height: 60, overflow: "hidden", imageRendering: "pixelated" }}>
+                <img
+                  src="/assets/squid-sprite.png"
+                  alt=""
+                  style={{ width: 192, height: 60, display: "block", imageRendering: "pixelated" }}
+                />
+              </div>
+            </div>
+            <p style={styles.emptyMsg}>No levels match your search.</p>
+            <p style={styles.emptySub}>Try a different name or clear the filters.</p>
+          </div>
+        )}
+
+        {!reorderMode && levels.length > 0 && <table style={styles.table}>
           <thead>
             <tr>
               <th style={styles.th}>Name</th>
@@ -415,13 +420,6 @@ function Levels() {
             </tr>
           </thead>
           <tbody>
-            {levels.length === 0 && (
-              <tr>
-                <td colSpan={6} style={styles.empty}>
-                  No levels found.
-                </td>
-              </tr>
-            )}
             {levels.map((level) => (
               <tr key={level.id}>
                 <td style={styles.td}>{level.name}</td>
@@ -532,12 +530,17 @@ const styles = {
     fontSize: "13px",
     borderBottom: "1px solid var(--bg-hover)",
   },
-  empty: {
-    padding: "2rem",
+  emptyState: {
+    padding: "3rem 2rem",
     textAlign: "center",
-    color: "var(--text-subtle)",
-    fontSize: "14px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
   },
+  emptySquid: { marginBottom: "4px" },
+  emptyMsg: { fontSize: "15px", fontWeight: "600", color: "var(--text)", margin: 0 },
+  emptySub: { fontSize: "13px", color: "var(--text-subtle)", margin: 0 },
   badgeGreen: {
     background: "var(--color-success-bg)",
     color: "var(--color-success-text)",

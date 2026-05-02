@@ -6,6 +6,7 @@ import Reports from "./pages/Reports";
 import AiGenerator from "./pages/AiGenerator";
 import Game from "./pages/Game";
 import LandingPage from "./pages/LandingPage";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/levels" element={<Levels />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/ai-generator" element={<AiGenerator />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

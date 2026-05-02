@@ -1,185 +1,136 @@
 # 🦑 Unlock The Room
 
-> An AI-assisted puzzle platformer with a full-stack developer management suite — originally built as the WGU D424 Software Engineering Capstone for GreySquiid Studios.
+> Puzzle platformer with an AI co-designer. Solo full-stack build — .NET 8, React, PostgreSQL, Anthropic API.
 
-**[▶ Play the live demo](https://unlock-the-room-frontend-production.up.railway.app)** · **[Developer Dashboard](https://unlock-the-room-frontend-production.up.railway.app/dashboard)**
-
----
+**[▶ Live demo](https://unlock-the-room-frontend-production.up.railway.app)** — one-click tour of the developer dashboard, no account creation needed.
 
 ![Gameplay Demo](docs/gameplay-demo.gif)
-> *Collect color-coded keys, unlock barriers, and reach the exit — levels designed by humans and AI alike.*
 
 ---
 
-## What is this?
+## TL;DR
 
-Unlock The Room is a browser-based puzzle platformer where players navigate grid-based levels, collecting keys that unlock color-matched barriers blocking the path to the exit door. The twist: levels can be designed by a developer using a built-in grid editor **or generated from scratch using the Anthropic Claude API**, which produces playable, logically consistent puzzles based on developer-supplied constraints.
+A browser puzzle platformer where players collect color-coded keys to unlock barriers and reach the exit. The more interesting half is the **developer dashboard** — a React management suite with a live grid editor and an **AI level generator** that uses Claude to design playable, solvable puzzles from natural-language constraints.
 
-The project ships with two interfaces — a dark-themed HTML5 Canvas game for players, and a React management dashboard for developers to create, publish, validate, and analyze levels.
-
----
-
-## Features
-
-- 🎮 **Browser-based puzzle platformer** — 60fps HTML5 Canvas game loop with sprite animation, physics, and collision
-- 🤖 **AI-powered level generation** — Anthropic Claude API produces playable, validated levels from developer constraints
-- 🛠 **Drag-and-drop level editor** — live grid preview, object rotation, publish/validate toggling, reorderable level library
-- 🔐 **Role-based authentication** — JWT tokens (HMAC-SHA256) + BCrypt password hashing, Developer vs Player permissions
-- 📊 **Developer dashboard** — level management, reports, live stats, and AI generator in a single React SPA
-- ✅ **22 xUnit tests** — service layer coverage with in-memory EF Core databases, 100% pass rate
-- 🐳 **Dockerized deployment** — multi-stage builds for both API and frontend, auto-deployed via Railway on push to main
+Originally built as a senior capstone, then polished into a portfolio piece across a series of focused engineering passes covering public access, design system, game UI polish, dashboard refinements, and brand cohesion.
 
 ---
 
-## Tech Stack
+## Try it in 30 seconds
 
-| Layer | Technology |
+1. Visit the [live demo](https://unlock-the-room-frontend-production.up.railway.app).
+2. Click **Tour the developer dashboard** — one-click demo login, no typing.
+3. From the dashboard, the **AI Generator** is one click away. Generate a level, then click **Save & playtest** to play what you just built.
+
+The demo state resets every 24 hours, so feel free to create, edit, or delete anything.
+
+---
+
+## How the AI level generator works
+
+The most interesting piece of engineering in the project. The pipeline:
+
+1. **Constraint capture.** The developer specifies grid dimensions, key count, hazard inclusion, and difficulty.
+2. **Prompt assembly.** Constraints are encoded into a structured prompt requesting JSON output that describes the level — spawn point, platforms, keys (with colors), barriers (with required key colors), hazards, and exit.
+3. **Claude API call.** Sent to `claude-haiku-4-5-20251001` with a strict JSON output schema.
+4. **Server-side validation.** The returned level is parsed and run through a solvability check before reaching the client. Unsolvable levels (e.g., a barrier requires a key the player can't physically reach) are rejected and regenerated.
+5. **Preview render.** The validated level is rendered to a grid preview with a legend and the model's design reasoning shown alongside.
+6. **Save and playtest.** The developer either commits to the library, or saves and playtests immediately, returning to the generator afterward with constraints preserved for fast iteration.
+
+**Key design decision:** constraining the model to grid coordinates rather than free-form positions. This made validation tractable and made the output reliably playable, at the cost of locking levels to a tile grid. Worth the trade — generation success rate jumped from "frequently nonsensical" to consistently solvable on the first attempt.
+
+---
+
+## Tech stack
+
+| Layer | Tech |
 |---|---|
-| Back-end API | ASP.NET Core Web API (.NET 8, C#) |
-| Front-end | React 18 (JavaScript) |
-| Game Engine | HTML5 Canvas API |
-| Database | PostgreSQL 16 + Entity Framework Core 8 |
-| AI Generation | Anthropic API (claude-haiku-4-5-20251001) |
-| Authentication | JWT Bearer tokens + BCrypt password hashing |
-| Deployment | Docker + Railway.app (CI/CD on push to main) |
-| Testing | xUnit + EF Core InMemory + Moq |
+| API | ASP.NET Core 8, C# |
+| Frontend | React 18 |
+| Game | HTML5 Canvas (vanilla, 60fps loop) |
+| Database | PostgreSQL 16 + EF Core 8 |
+| AI | Anthropic API (claude-haiku-4-5) |
+| Auth | JWT (HMAC-SHA256) + BCrypt password hashing |
+| Deploy | Docker + Railway, CI on push to main |
+| Tests | xUnit + EF Core InMemory + Moq |
+
+---
+
+## Engineering decisions worth calling out
+
+**Single-table inheritance for game objects.** The five object types (Key, Barrier, Button, Hazard, ExitDoor) all inherit from an abstract `GameObject` and map to one `GameObjects` table via EF Core's Table-Per-Hierarchy strategy. The trade is wider rows with type-specific nullable columns, in exchange for fast level loading (one query, no joins) and simple polymorphic deserialization. Worth it given levels are read-heavy and rarely contain more than ~30 objects.
+
+**State transitions through services, not controllers.** Controllers are thin — they validate input shape and delegate. All business rules (key collection unlocks barriers, level deletion cascades to scores and saves, email normalization on registration) live in service classes. Made the test suite straightforward to write and the controllers straightforward to read.
+
+**Connected-component cell merging for canvas rendering.** Adjacent same-color barriers (and adjacent platforms / kill bricks) used to render as separate shapes, producing a visible seam at every object boundary because each shape's stripe and gradient pattern reset at its own bounding box. Fixed by grouping cells via BFS flood fill at level load and rendering each merged group as one continuous shape, with the gradient and stripe origin computed from the group's bounding box rather than per-object. Different-color barriers still produce separate groups and render with visible seams between them — gameplay distinction preserved.
+
+**Unified routing context for playtest flow.** The game can be entered for "playtest" from two places (AI Generator and Level Management edit screen), and both should return to where the user came from with that level still in focus. Rather than branching exit handlers per entry point, all four exit paths (Next level, Save, Change level, Esc → Main Menu) consult a single `fromContext` state and route accordingly. Adding a third entry point in the future (e.g., a public level gallery) becomes one new case in `returnToContext`, not a deepening conditional in three different handlers.
+
+**Fail-fast on missing config.** The demo email originally had a fallback string literal (`?? "demo@greysquiid.com"`). Replaced with `?? throw new InvalidOperationException(...)` — if the config key is missing in production, the app fails loudly at startup instead of silently using a stale email weeks later.
+
+**Two-layer validation.** Client-side validation in React for immediate feedback, server-side re-validation before any DB write. Email is normalized to lowercase and trimmed at the service layer to prevent case-sensitive duplicate accounts. Parameterized queries throughout EF Core block SQL injection by construction.
+
+**Cost guards on the AI endpoint.** With the demo publicly accessible, the AI generation endpoint becomes a potential abuse vector. Per-IP rate limiting (10 generations/hour) plus an account-level monthly budget cap on the Anthropic side keeps surprise bills off the table.
+
+**On AI tooling.** Built with Claude as an implementation partner. Architecture decisions, debugging strategy (including a production demo-login bug traced to a `.dockerignore` exclusion, a leaked-secret incident response, and a polygon-merge rendering bug investigation through a flawed first fix into the right architectural answer), and code review are mine; routine implementation was accelerated by AI tooling. The design rationale is documented in [`DESIGN.md`](DESIGN.md) and the commit history.
 
 ---
 
 ## Architecture
 
 ```
-Browser
-├── /game          → React game client (HTML5 Canvas, 60fps game loop)
-│    ├── Main Menu, Level Select, Settings, Saved Levels
-│    └── GameCanvas — physics, collision, sprite animation, HUD
-└── /dashboard     → React management dashboard (Developer role only)
-     ├── Level Management — CRUD, reorder, publish, validate
-     ├── Level Editor — drag/drop grid editor with rotation support
-     ├── AI Generator — Anthropic API → JSON level → grid preview
-     └── Reports — level inventory with filters and timestamps
-
-ASP.NET Core Web API (port 5050 local / 8080 production)
-├── Controllers: Levels, Users, Reports, Ai, Scores, SavedLevels
-├── Services: business logic layer, cascade deletes, score formatting
-├── Models: GameObject (abstract) → Key, Barrier, Button, Hazard, ExitDoor
-└── EF Core TPH: all 5 game object types in one GameObjects table
-
-PostgreSQL
-└── Tables: Levels, Users, GameObjects, Scores, SavedLevels
+[Browser]
+   │
+   ├── /          → Landing page (one-click tour of the dashboard)
+   ├── /play      → React game client (HTML5 Canvas, 60fps loop)
+   └── /dashboard → React management dashboard (Developer role only)
+   │
+   ▼
+[ASP.NET Core API] ──► [Anthropic API] (AI level generation)
+   │
+   ▼
+[PostgreSQL]
 ```
+
+Demo state is restored every 24 hours by a `DemoResetService` background job that reads from a canonical level snapshot in the repo. The demo data is consistent across visitors regardless of what the previous visitor did.
 
 ---
 
-## OOP Design Highlights
+## Screenshots
 
-- **Inheritance** — `GameObject` abstract base class with 5 concrete child types
-- **Polymorphism** — abstract `GetObjectDescription()` overridden per type
-- **Encapsulation** — all state transitions (key collection, barrier unlock, level validation) managed through the service layer
-- **Table Per Hierarchy** — EF Core maps all 5 game object types to a single `GameObjects` table using an `ObjectType` discriminator column
-
----
-
-## Running Locally
-
-### Prerequisites
-
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8)
-- [Node.js 20+](https://nodejs.org)
-- [PostgreSQL 16](https://www.postgresql.org/download/)
-- An [Anthropic API key](https://console.anthropic.com)
-
-### 1. Clone the repo
-
-```bash
-git clone https://gitlab.com/wgu-gitlab-environment/student-repos/jda1011/d424-software-engineering-capstone.git D424
-cd D424
-```
-
-### 2. Set up the database
-
-```bash
-psql postgres -c "CREATE DATABASE unlocktheroom;"
-psql postgres -c "CREATE USER postgres WITH PASSWORD 'postgres';"
-psql postgres -c "GRANT ALL PRIVILEGES ON DATABASE unlocktheroom TO postgres;"
-psql postgres -c "ALTER DATABASE unlocktheroom OWNER TO postgres;"
-```
-
-### 3. Configure the API
-
-Create `backend/UnlockTheRoom.API/appsettings.json`:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=unlocktheroom;Username=postgres;Password=postgres"
-  },
-  "Jwt": {
-    "Key": "YourSuperSecretKeyThatIsAtLeast32CharactersLong!",
-    "Issuer": "UnlockTheRoom",
-    "Audience": "UnlockTheRoom"
-  },
-  "Anthropic": {
-    "ApiKey": "your-anthropic-api-key",
-    "Model": "claude-haiku-4-5-20251001"
-  }
-}
-```
-
-> ⚠️ `appsettings.json` is gitignored — never commit API keys.
-
-### 4. Run the API
-
-```bash
-cd backend/UnlockTheRoom.API
-dotnet ef database update
-dotnet run
-# API running at http://localhost:5050
-# Swagger UI at http://localhost:5050/swagger
-```
-
-### 5. Run the React UI
-
-```bash
-cd frontend/unlock-the-room-ui
-npm install
-npm start
-# App running at http://localhost:3000
-```
+| Dashboard | AI Generator | Game |
+|---|---|---|
+| ![Dashboard](docs/screenshots/Dashboard.png) | ![AI Generator](docs/screenshots/AiGenerator.png) | ![Game](docs/screenshots/Gameplay.png) |
 
 ---
 
-## Running Tests
+## Testing
+
+24 xUnit tests covering the service layer — `UserService` (auth, registration, email normalization, demo login), `LevelService` (CRUD, search, filters), `ScoreService` (submission, leaderboards, ownership). Each test runs against a fresh in-memory EF Core database. 100% pass rate.
 
 ```bash
 cd backend/UnlockTheRoom.Tests
-dotnet test --logger "console;verbosity=detailed"
+dotnet test
 ```
-
-**22 tests — 100% pass rate.** Covers `UserService` (auth, registration, email normalization), `LevelService` (CRUD, search, filtering), and `ScoreService` (submission, leaderboard ordering, ownership).
 
 ---
 
-## Deploying with Docker
+## Roadmap
 
-Both services include production Dockerfiles using multi-stage builds.
+What I'd build next, roughly in priority order:
 
-```bash
-# Build API image
-cd backend/UnlockTheRoom.API
-docker build -t unlocktheroom-api .
-
-# Build frontend image
-cd frontend/unlock-the-room-ui
-docker build -t unlocktheroom-ui .
-```
-
-Production deployment is automated — pushing to the `main` branch of the GitHub mirror triggers Railway to rebuild and redeploy both containers automatically.
+- **Persistent player profiles and leaderboards.** The data model supports it; the player-side UI doesn't surface it yet.
+- **Public level gallery.** AI-generated levels could be shared to a gallery with upvoting and play counts.
+- **More AI integration.** Hint generation for stuck players, automatic difficulty scoring of human-designed levels, adaptive level selection based on player history.
+- **Mobile touch controls.** Keyboard-only today.
+- **Asset pipeline upgrade.** Current barrier and platform rendering is procedural canvas drawing. Migrating to a proper tile atlas would tighten visuals and free up CPU.
 
 ---
 
+## Project structure
 
-## Project Structure
+<details>
+<summary>Click to expand</summary>
 
 ```
 D424/
@@ -190,40 +141,39 @@ D424/
 │   │   ├── DTOs/
 │   │   ├── Migrations/
 │   │   ├── Models/         # GameObject (abstract) + 5 child classes
-│   │   ├── Services/
-│   │   ├── Dockerfile
+│   │   ├── Services/       # Business logic, demo reset background job
+│   │   ├── SeedData/       # Canonical level snapshots for demo reset
 │   │   └── Program.cs
 │   └── UnlockTheRoom.Tests/
-│       ├── Helpers/        # TestDbContextFactory
-│       ├── UserServiceTests.cs
-│       ├── LevelServiceTests.cs
-│       └── ScoreServiceTests.cs
 └── frontend/
     └── unlock-the-room-ui/
-        ├── public/assets/  # squid-sprite.png, utr-bg.png
+        ├── public/         # Squid sprite, screenshots, backgrounds
         ├── src/
         │   ├── components/
         │   │   ├── LevelEditor.js
-        │   │   └── game/   # GameCanvas, MainMenu, LevelSelect, etc.
-        │   ├── pages/      # Dashboard, Levels, Reports, AiGenerator, Game
-        │   └── services/
-        │       └── api.js
-        ├── Dockerfile
+        │   │   └── game/   # GameCanvas, MainMenu, LevelSelect,
+        │   │              #   ParallaxBackground, LevelThumbnail
+        │   ├── pages/      # Dashboard, Levels, Reports, AiGenerator,
+        │   │              #   Game, LandingPage, NotFound
+        │   ├── gameColors.js   # Canvas color constants
+        │   └── config.js   # DEMO_EMAIL, DEMO_PASSWORD constants
         └── nginx.conf
 ```
 
----
-
-## Branch Strategy
-
-| Branch | Purpose |
-|---|---|
-| `main` | Stable, production-ready |
-| `develop` | Integration branch |
-| `feature/*` | One branch per sprint feature |
+</details>
 
 ---
 
-## License
+## Local development
 
-Originally built as the WGU D424 Software Engineering Capstone (2026). © GreySquiid Studios · Joshua Davidson.
+See [SETUP.md](SETUP.md) for the full local setup guide — database, API, frontend, tests, and Docker.
+
+For design decisions, color tokens, and the AI budget guidance, see [DESIGN.md](DESIGN.md).
+
+---
+
+## License & attribution
+
+Built solo by [Joshua Davidson](https://github.com/GreySquiid) (GreySquiid Studios). Source available for review and learning; attribution appreciated if you reuse parts of it.
+
+Originally developed as the WGU D424 Software Engineering Capstone (2026), then polished as a portfolio piece.
