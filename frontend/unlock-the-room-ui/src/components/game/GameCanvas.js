@@ -237,6 +237,19 @@ function GameCanvas({
       stateRef.current.platTopEdges = new Set(
         platforms.map((p) => `${p.x},${p.y}`),
       );
+      // Left/right platform adjacency (no explicit side borders to skip, but sets available for future use)
+      stateRef.current.platRightEdges = new Set(
+        platforms.map((p) => `${p.x + p.w},${p.y}`),
+      );
+      stateRef.current.platLeftEdges = new Set(
+        platforms.map((p) => `${p.x},${p.y}`),
+      );
+
+      // Kill-brick adjacency sets (edges by pixel coordinate, built once at level load)
+      const killbricks = hazards.filter((h) => h.hazardType === "KillBrick");
+      stateRef.current.kbTopEdges    = new Set(killbricks.map((h) => `${Math.round(h.x)},${Math.round(h.y)}`));
+      stateRef.current.kbBottomEdges = new Set(killbricks.map((h) => `${Math.round(h.x)},${Math.round(h.y + h.h)}`));
+      stateRef.current.kbRightEdges  = new Set(killbricks.map((h) => `${Math.round(h.x + h.w)},${Math.round(h.y)}`));
 
       // Fix 7 — cache barrier adjacency sets and allSolids; rebuild only when barrier state changes
       const rebuildBarrierEdges = (barriers) => {
@@ -245,6 +258,13 @@ function GameCanvas({
           locked.map((b) => `${b.color},${b.x},${b.y + b.h}`),
         );
         stateRef.current.barrierTopEdges = new Set(
+          locked.map((b) => `${b.color},${b.x},${b.y}`),
+        );
+        // Left/right barrier adjacency — same-color barriers only
+        stateRef.current.barrierRightEdges = new Set(
+          locked.map((b) => `${b.color},${b.x + b.w},${b.y}`),
+        );
+        stateRef.current.barrierLeftEdges = new Set(
           locked.map((b) => `${b.color},${b.x},${b.y}`),
         );
         stateRef.current.allSolids = [...stateRef.current.platforms, ...locked];
@@ -659,6 +679,9 @@ function GameCanvas({
       const hasBelow = s.barrierTopEdges.has(
         `${barrier.color},${barrier.x},${barrier.y + barrier.h}`,
       );
+      // Same-color barrier immediately to left/right → skip that side border
+      const hasLeft  = s.barrierRightEdges?.has(`${barrier.color},${barrier.x},${barrier.y}`);
+      const hasRight = s.barrierLeftEdges?.has(`${barrier.color},${barrier.x + barrier.w},${barrier.y}`);
 
       ctx.save();
       ctx.beginPath();
@@ -687,14 +710,18 @@ function GameCanvas({
 
       ctx.restore(); // remove clip
 
-      // Side border lines (left + right always; top/bottom only at open edges)
+      // Side border lines — skip each side when a same-color barrier abuts it
       ctx.strokeStyle = hexToRgba(color, 0.7);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(bx + 1, by);
-      ctx.lineTo(bx + 1, by + bh);
-      ctx.moveTo(bx + bw - 1, by);
-      ctx.lineTo(bx + bw - 1, by + bh);
+      if (!hasLeft) {
+        ctx.moveTo(bx + 1, by);
+        ctx.lineTo(bx + 1, by + bh);
+      }
+      if (!hasRight) {
+        ctx.moveTo(bx + bw - 1, by);
+        ctx.lineTo(bx + bw - 1, by + bh);
+      }
       ctx.stroke();
 
       // Bright cap lines with glow at open edges
@@ -776,6 +803,13 @@ function GameCanvas({
         const hw = Math.round(hazard.w),
           hh = Math.round(hazard.h);
         const isVertical = hazard.rotation === 90 || hazard.rotation === 270;
+
+        // Adjacency — used to extend core strips and suppress edge lines at seams
+        const kbHasAbove = s.kbBottomEdges?.has(`${hx},${hy}`);
+        const kbHasBelow = s.kbTopEdges?.has(`${hx},${hy + hh}`);
+        const kbHasLeft  = s.kbRightEdges?.has(`${hx},${hy}`);
+        const kbHasRight = s.kbTopEdges?.has(`${hx + hw},${hy}`); // same set as top-left corners
+
         ctx.fillStyle = KILLBRICK_BG;
         ctx.fillRect(hx, hy, hw, hh);
         // Gradient runs across the thin dimension of the strip
@@ -789,21 +823,29 @@ function GameCanvas({
         laserGrad.addColorStop(1, "rgba(160, 0, 0, 0.95)");
         ctx.fillStyle = laserGrad;
         ctx.fillRect(hx, hy, hw, hh);
-        // Bright core strip runs along the long dimension
+        // Bright core strip — margins eliminated at abutting edges to close the seam
         if (isVertical) {
           const coreW = Math.max(2, Math.floor(hw * 0.22));
           const coreX = hx + Math.floor((hw - coreW) / 2);
+          const coreTopMargin    = kbHasAbove ? 0 : 3;
+          const coreBottomMargin = kbHasBelow ? 0 : 3;
           ctx.fillStyle = "rgba(255, 210, 210, 0.88)";
-          ctx.fillRect(coreX, hy + 3, coreW, hh - 6);
-          ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
-          ctx.fillRect(hx, hy, 1, hh);
+          ctx.fillRect(coreX, hy + coreTopMargin, coreW, hh - coreTopMargin - coreBottomMargin);
+          if (!kbHasLeft) {
+            ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
+            ctx.fillRect(hx, hy, 1, hh);
+          }
         } else {
           const coreH = Math.max(2, Math.floor(hh * 0.22));
           const coreY = hy + Math.floor((hh - coreH) / 2);
+          const coreLeftMargin  = kbHasLeft  ? 0 : 3;
+          const coreRightMargin = kbHasRight ? 0 : 3;
           ctx.fillStyle = "rgba(255, 210, 210, 0.88)";
-          ctx.fillRect(hx + 3, coreY, hw - 6, coreH);
-          ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
-          ctx.fillRect(hx, hy, hw, 1);
+          ctx.fillRect(hx + coreLeftMargin, coreY, hw - coreLeftMargin - coreRightMargin, coreH);
+          if (!kbHasAbove) {
+            ctx.fillStyle = "rgba(255, 80, 80, 0.55)";
+            ctx.fillRect(hx, hy, hw, 1);
+          }
         }
         if (settings?.highContrast) {
           ctx.strokeStyle = HIGH_CONTRAST_BORDER;

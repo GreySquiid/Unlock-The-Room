@@ -1,7 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../services/api";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer,
+} from "recharts";
+
+// Read CSS custom-property values once at component scope — same pattern as Phase 1 canvas code.
+// Falls back to the literal values from DESIGN.md if getComputedStyle isn't available (e.g., SSR).
+function readToken(prop, fallback) {
+  try {
+    return getComputedStyle(document.documentElement).getPropertyValue(prop).trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function Reports() {
   const [report, setReport] = useState(null);
@@ -11,6 +24,14 @@ function Reports() {
     isPublished: "",
     fromDate: "",
     toDate: "",
+  });
+  // Resolved CSS token values for Recharts (SVG fills don't support custom properties)
+  const chartColors = useRef({
+    easy:   readToken("--color-success",  "#10B981"),
+    medium: readToken("--color-warning",  "#F59E0B"),
+    hard:   readToken("--color-danger",   "#EF4444"),
+    text:   readToken("--text-dim",       "#888888"),
+    bg:     readToken("--surface-raised", "#f5f5f7"),
   });
   const navigate = useNavigate();
 
@@ -138,6 +159,50 @@ function Reports() {
               <StatCard label="Easy" value={report.easyCount} color="var(--color-success-text)" />
               <StatCard label="Medium" value={report.mediumCount} color="var(--color-warning-text)" />
               <StatCard label="Hard" value={report.hardCount} color="var(--color-danger-text)" />
+            </div>
+
+            <div style={styles.chartCard}>
+              <p style={styles.chartTitle}>Levels by difficulty</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart
+                  data={[
+                    { name: "Easy",   count: report.easyCount },
+                    { name: "Medium", count: report.mediumCount },
+                    { name: "Hard",   count: report.hardCount },
+                  ]}
+                  margin={{ top: 8, right: 20, left: -10, bottom: 0 }}
+                  barSize={40}
+                >
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: chartColors.current.text, fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: chartColors.current.text, fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={24}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                    contentStyle={{
+                      background: chartColors.current.bg,
+                      border: "1px solid var(--border)",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                    }}
+                    formatter={(value) => [value, "Levels"]}
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    <Cell fill={chartColors.current.easy}   key="easy" />
+                    <Cell fill={chartColors.current.medium} key="medium" />
+                    <Cell fill={chartColors.current.hard}   key="hard" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
 
             <div style={styles.tableCard}>
@@ -298,6 +363,19 @@ const styles = {
     letterSpacing: "0.5px",
   },
   statValue: { fontSize: "26px", fontWeight: "600" },
+  chartCard: {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "10px",
+    padding: "1rem 1.25rem 0.5rem",
+    marginBottom: "1.5rem",
+  },
+  chartTitle: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "var(--text-secondary)",
+    marginBottom: "0.5rem",
+  },
   tableCard: {
     background: "var(--surface)",
     border: "1px solid var(--border)",

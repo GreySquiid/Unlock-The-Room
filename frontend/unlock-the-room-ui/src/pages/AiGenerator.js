@@ -1,27 +1,37 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../services/api";
 import { BARRIER_COLORS, OBJECT_COLORS } from "../gameColors";
 
 function AiGenerator() {
-  const [form, setForm] = useState({
-    difficulty: "Medium",
-    rows: 18,
-    columns: 24,
-    keyCount: 3,
-    includeHazards: true,
-    levelName: "",
-    layoutArchetype: "",
-    layoutDensity: "Moderate",
-    campaignRole: "",
-  });
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState(() => ({
+    difficulty:      searchParams.get("difficulty")     || "Medium",
+    rows:            parseInt(searchParams.get("rows"))  || 18,
+    columns:         parseInt(searchParams.get("columns")) || 24,
+    keyCount:        parseInt(searchParams.get("keyCount")) || 3,
+    includeHazards:  searchParams.get("includeHazards") !== "false",
+    levelName:       searchParams.get("levelName")       || "",
+    layoutArchetype: searchParams.get("layoutArchetype") || "",
+    layoutDensity:   searchParams.get("layoutDensity")  || "Moderate",
+    campaignRole:    searchParams.get("campaignRole")    || "",
+  }));
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [playtesting, setPlaytesting] = useState(false);
   const [error, setError] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
   const navigate = useNavigate();
+
+  // Show confirmation when returning from a playtest
+  useEffect(() => {
+    if (searchParams.get("saved")) {
+      setSavedMessage("Level saved and playtested! View it in Level Management.");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerate = async (e) => {
     e.preventDefault();
@@ -52,6 +62,35 @@ function AiGenerator() {
       setError("Failed to save level. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveAndPlaytest = async () => {
+    if (!preview) return;
+    setPlaytesting(true);
+    setError("");
+    try {
+      const res = await api.post("/Ai/save-preview", preview);
+      const levelId = res.data?.id;
+      if (!levelId) throw new Error("No level ID returned");
+      const params = new URLSearchParams({
+        level:          String(levelId),
+        from:           "ai-generator",
+        difficulty:     form.difficulty,
+        rows:           String(form.rows),
+        columns:        String(form.columns),
+        keyCount:       String(form.keyCount),
+        includeHazards: String(form.includeHazards),
+        levelName:      form.levelName,
+        layoutArchetype:form.layoutArchetype,
+        layoutDensity:  form.layoutDensity,
+        campaignRole:   form.campaignRole,
+      });
+      navigate(`/play?${params.toString()}`);
+    } catch {
+      setError("Failed to save level before playtesting. Please try again.");
+    } finally {
+      setPlaytesting(false);
     }
   };
 
@@ -338,9 +377,16 @@ function AiGenerator() {
                     <button
                       style={{ ...styles.saveBtn, opacity: saving ? 0.7 : 1 }}
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={saving || playtesting}
                     >
                       {saving ? "Saving..." : "Save to library"}
+                    </button>
+                    <button
+                      style={{ ...styles.playtestBtn, opacity: playtesting ? 0.7 : 1 }}
+                      onClick={handleSaveAndPlaytest}
+                      disabled={saving || playtesting}
+                    >
+                      {playtesting ? "Saving..." : "Save & playtest"}
                     </button>
                   </div>
                 </div>
@@ -524,6 +570,16 @@ const styles = {
   saveBtn: {
     padding: "6px 14px",
     background: "var(--color-primary)",
+    color: "var(--surface)",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontWeight: "500",
+    cursor: "pointer",
+  },
+  playtestBtn: {
+    padding: "6px 14px",
+    background: "var(--color-success)",
     color: "var(--surface)",
     border: "none",
     borderRadius: "8px",

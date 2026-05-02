@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import LevelEditor from "../components/LevelEditor";
 import api from "../services/api";
@@ -29,7 +29,9 @@ function Levels() {
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [reorderSuccess, setReorderSuccess] = useState("");
   const [editingLayout, setEditingLayout] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -39,6 +41,15 @@ function Levels() {
     }
     fetchLevels();
   }, [search, difficulty]);
+
+  // Return from playtest: reopen the editor for the level that was just playtested
+  useEffect(() => {
+    if (location.state?.reopenEditor) {
+      setEditingLayout(location.state.reopenEditor);
+      window.history.replaceState({}, "");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchLevels = async () => {
     try {
@@ -387,7 +398,7 @@ function Levels() {
             onClose={() => { setEditingLayout(null); fetchLevels(); }}
             onPlayTest={(lvl) => {
               setEditingLayout(null);
-              navigate("/play", { state: { autoPlay: lvl } });
+              navigate("/play", { state: { autoPlay: lvl, from: "level-editor" } });
             }}
           />
         )}
@@ -431,36 +442,15 @@ function Levels() {
                   {new Date(level.createdAt).toLocaleDateString()}
                 </td>
                 <td style={styles.td}>
-                  <button
-                    style={{ ...styles.actionBtn, color: "var(--color-primary)" }}
-                    onClick={() => setEditingLayout(level)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    style={{
-                      ...styles.actionBtn,
-                      color: level.isPublished ? "var(--color-warning-text)" : "var(--color-success-text)",
-                    }}
-                    onClick={() => togglePublish(level)}
-                  >
-                    {level.isPublished ? "Unpublish" : "Publish"}
-                  </button>
-                  <button
-                    style={{
-                      ...styles.actionBtn,
-                      color: level.isValidated ? "var(--color-warning-text)" : "var(--color-primary)",
-                    }}
-                    onClick={() => toggleValidate(level)}
-                  >
-                    {level.isValidated ? "Invalidate" : "Validate"}
-                  </button>
-                  <button
-                    style={{ ...styles.actionBtn, color: "var(--color-danger)" }}
-                    onClick={() => handleDelete(level.id)}
-                  >
-                    Delete
-                  </button>
+                  <KebabMenu
+                    level={level}
+                    openId={openMenuId}
+                    setOpenId={setOpenMenuId}
+                    onEdit={() => setEditingLayout(level)}
+                    onPublish={() => togglePublish(level)}
+                    onValidate={() => toggleValidate(level)}
+                    onDelete={() => handleDelete(level.id)}
+                  />
                 </td>
               </tr>
             ))}
@@ -564,15 +554,6 @@ const styles = {
     fontSize: "11px",
     fontWeight: "500",
   },
-  actionBtn: {
-    fontSize: "12px",
-    padding: "3px 10px",
-    borderRadius: "6px",
-    border: "1px solid var(--border-divider)",
-    background: "transparent",
-    cursor: "pointer",
-    marginRight: "4px",
-  },
   primaryBtn: {
     padding: "8px 16px",
     background: "var(--color-primary)",
@@ -659,6 +640,161 @@ const styles = {
     borderRadius: "99px",
     fontSize: "11px",
     fontWeight: "500",
+  },
+};
+
+function KebabMenu({ level, openId, setOpenId, onEdit, onPublish, onValidate, onDelete }) {
+  const isOpen = openId === level.id;
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  // Compute fixed position when menu opens so overflow:hidden on the table doesn't clip it
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    }
+  }, [isOpen]);
+
+  // Auto-focus first item
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      menuRef.current.querySelector('[role="menuitem"]')?.focus();
+    }
+  }, [isOpen]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target) &&
+        triggerRef.current && !triggerRef.current.contains(e.target)
+      ) {
+        setOpenId(null);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isOpen, setOpenId]);
+
+  // Close on scroll (fixed dropdown would drift otherwise)
+  useEffect(() => {
+    if (!isOpen) return;
+    const close = () => setOpenId(null);
+    window.addEventListener("scroll", close, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", close, { capture: true });
+  }, [isOpen, setOpenId]);
+
+  const items = [
+    { label: "Edit", action: onEdit, color: "var(--color-primary)" },
+    {
+      label: level.isPublished ? "Unpublish" : "Publish",
+      action: onPublish,
+      color: level.isPublished ? "var(--color-warning-text)" : "var(--color-success-text)",
+    },
+    {
+      label: level.isValidated ? "Invalidate" : "Validate",
+      action: onValidate,
+      color: "var(--text-dim)",
+    },
+    { label: "Delete", action: onDelete, color: "var(--color-danger)" },
+  ];
+
+  const handleItemKey = (e, idx) => {
+    const all = menuRef.current?.querySelectorAll('[role="menuitem"]');
+    if (e.key === "Escape") {
+      setOpenId(null);
+      triggerRef.current?.focus();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      all?.[Math.min(idx + 1, all.length - 1)]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (idx === 0) triggerRef.current?.focus();
+      else all?.[idx - 1]?.focus();
+    }
+  };
+
+  return (
+    <span style={{ position: "relative", display: "inline-block" }}>
+      <button
+        ref={triggerRef}
+        style={kebabStyles.trigger}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label="Level actions"
+        onClick={() => setOpenId(isOpen ? null : level.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpenId(null);
+          if (e.key === "ArrowDown" && isOpen) {
+            e.preventDefault();
+            menuRef.current?.querySelector('[role="menuitem"]')?.focus();
+          }
+        }}
+      >
+        ⋯
+      </button>
+      {isOpen && (
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{ ...kebabStyles.dropdown, top: pos.top, right: pos.right }}
+        >
+          {items.map((item, idx) => (
+            <button
+              key={item.label}
+              role="menuitem"
+              tabIndex={-1}
+              style={{ ...kebabStyles.item, color: item.color }}
+              onClick={() => { setOpenId(null); item.action(); }}
+              onKeyDown={(e) => handleItemKey(e, idx)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
+const kebabStyles = {
+  trigger: {
+    fontSize: "15px",
+    padding: "2px 10px",
+    borderRadius: "6px",
+    border: "1px solid var(--border-divider)",
+    background: "transparent",
+    cursor: "pointer",
+    color: "var(--text-dim)",
+    letterSpacing: "3px",
+    lineHeight: 1,
+    fontWeight: "700",
+  },
+  dropdown: {
+    position: "fixed",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "8px",
+    boxShadow: "0 4px 18px rgba(0,0,0,0.14)",
+    zIndex: 1000,
+    minWidth: "148px",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+  },
+  item: {
+    textAlign: "left",
+    padding: "9px 14px",
+    fontSize: "13px",
+    border: "none",
+    borderBottom: "1px solid var(--bg-hover)",
+    background: "transparent",
+    cursor: "pointer",
+    width: "100%",
   },
 };
 

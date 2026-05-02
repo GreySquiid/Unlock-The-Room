@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import MainMenu from "../components/game/MainMenu";
 import LevelSelect from "../components/game/LevelSelect";
@@ -24,7 +24,11 @@ function Game() {
     const saved = localStorage.getItem("gameSettings");
     return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
   });
+  // fromContext tracks which external screen launched the current playtest
+  const [fromContext, setFromContext] = useState(null); // "ai-generator" | "level-editor" | null
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -35,10 +39,25 @@ function Game() {
     }).catch(() => {});
   }, []);
 
+  // Handle entry via location.state (LevelEditor playtest) or URL params (AI Generator playtest)
   useEffect(() => {
-    if (location.state?.autoPlay) {
+    const levelIdParam = searchParams.get("level");
+    const fromParam = searchParams.get("from");
+
+    if (levelIdParam) {
+      // AI Generator path: fetch level by ID (works for draft levels), start game
+      api.get(`/Levels/${levelIdParam}`)
+        .then(res => {
+          setSelectedLevel(res.data);
+          setScreen("game");
+          setFromContext(fromParam || null);
+        })
+        .catch(() => {});
+    } else if (location.state?.autoPlay) {
+      // LevelEditor path: level object passed directly in state
       setSelectedLevel(location.state.autoPlay);
       setScreen("game");
+      setFromContext(location.state?.from || null);
     }
   }, []);
 
@@ -61,7 +80,25 @@ function Game() {
     setScreen("menu");
   };
 
+  // Build the return URL/action for playtest exit paths
+  const returnToContext = useCallback(() => {
+    if (fromContext === "ai-generator") {
+      // Preserve the form constraint params; add saved=1 so the generator shows confirmation
+      const returnParams = new URLSearchParams(searchParams);
+      returnParams.delete("level");
+      returnParams.delete("from");
+      returnParams.set("saved", "1");
+      navigate(`/ai-generator?${returnParams.toString()}`);
+    } else if (fromContext === "level-editor") {
+      navigate("/levels", { state: { reopenEditor: selectedLevel } });
+    }
+  }, [fromContext, navigate, searchParams, selectedLevel]);
+
   const handleLevelComplete = useCallback((timeSeconds) => {
+    if (fromContext) {
+      returnToContext();
+      return;
+    }
     const currentIndex = publishedLevels.findIndex(l => l.id === selectedLevel?.id);
     const nextLevel = publishedLevels[currentIndex + 1];
     if (nextLevel) {
@@ -70,10 +107,18 @@ function Game() {
     } else {
       setScreen("levelSelect");
     }
-  }, [publishedLevels, selectedLevel]);
+  }, [fromContext, returnToContext, publishedLevels, selectedLevel]);
 
-  const handleMenu = useCallback(() => setScreen("menu"), []);
-  const handleLevelSelect = useCallback(() => setScreen("levelSelect"), []);
+  const handleMenu = useCallback(() => {
+    if (fromContext) { returnToContext(); return; }
+    setScreen("menu");
+  }, [fromContext, returnToContext]);
+
+  const handleLevelSelect = useCallback(() => {
+    if (fromContext) { returnToContext(); return; }
+    setScreen("levelSelect");
+  }, [fromContext, returnToContext]);
+
   const handlePlayLevel = useCallback((level) => {
     setSelectedLevel(level);
     setScreen("game");
