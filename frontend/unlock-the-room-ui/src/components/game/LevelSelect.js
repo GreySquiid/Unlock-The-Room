@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
+import { GAME_UI } from "../../gameColors";
 
 function LevelSelect({ player, settings, onPlay, onBack }) {
   const [levels, setLevels] = useState([]);
@@ -52,10 +53,10 @@ function LevelSelect({ player, settings, onPlay, onBack }) {
   };
 
   const diffColor = (d) => {
-    if (d === "Easy") return "#639922";
-    if (d === "Medium") return "#BA7517";
-    if (d === "Hard") return "#A32D2D";
-    return "#888";
+    if (d === "Easy") return GAME_UI.diffEasy;
+    if (d === "Medium") return GAME_UI.diffMedium;
+    if (d === "Hard") return "var(--color-danger-text)";
+    return GAME_UI.textMuted;
   };
 
   return (
@@ -120,7 +121,7 @@ function LevelCard({ level, index, unlocked, diffColor, onPlay, bestScore }) {
         {level.difficulty}
       </p>
       {bestScore && (
-        <p style={{ fontSize: "10px", color: "#7F77DD", margin: "4px 0 0", fontVariantNumeric: "tabular-nums" }}>
+        <p style={{ fontSize: "10px", color: GAME_UI.accentPurple, margin: "4px 0 0", fontVariantNumeric: "tabular-nums" }}>
           Best: {bestScore.formattedTime}
         </p>
       )}
@@ -137,8 +138,8 @@ const styles = {
     padding: "2rem",
   },
   card: {
-    background: "#1e1e32",
-    border: "1px solid #333350",
+    background: GAME_UI.cardBgDeep,
+    border: `1px solid ${GAME_UI.cardBorderDeep}`,
     borderRadius: "16px",
     padding: "2rem",
     width: "560px",
@@ -153,7 +154,7 @@ const styles = {
     marginBottom: "1.25rem",
   },
   title: {
-    color: "#e8e8e8",
+    color: "var(--game-text-bright)",
     fontSize: "20px",
     fontWeight: "700",
     margin: 0,
@@ -161,15 +162,15 @@ const styles = {
   },
   notice: {
     fontSize: "12px",
-    color: "#6a6a8a",
+    color: GAME_UI.textNotice,
     marginBottom: "1.25rem",
     padding: "9px 12px",
-    background: "#16162a",
+    background: GAME_UI.rowBg,
     borderRadius: "8px",
-    border: "1px solid #2a2a44",
+    border: `1px solid var(--game-btn-bg)`,
   },
   message: {
-    color: "#5a5a7a",
+    color: GAME_UI.textSubtle,
     textAlign: "center",
     padding: "2rem 0",
     fontSize: "14px",
@@ -180,8 +181,8 @@ const styles = {
     gap: "10px",
   },
   levelCard: {
-    background: "#16162a",
-    border: "1px solid #2e2e4a",
+    background: GAME_UI.rowBg,
+    border: `1px solid ${GAME_UI.rowBorder}`,
     borderRadius: "10px",
     padding: "14px 10px",
     textAlign: "center",
@@ -190,20 +191,20 @@ const styles = {
     transition: "border-color 0.15s, background 0.15s, box-shadow 0.15s",
   },
   levelCardHover: {
-    background: "#1e1e38",
-    border: "1px solid #534AB7",
+    background: GAME_UI.rowHoverBg,
+    border: "1px solid var(--color-primary)",
     boxShadow: "0 0 12px rgba(83,74,183,0.25)",
   },
   levelLocked: { opacity: 0.35, cursor: "not-allowed" },
   levelNumber: {
     fontSize: "22px",
     fontWeight: "800",
-    color: "#7F77DD",
+    color: GAME_UI.accentPurple,
     marginBottom: "5px",
   },
   levelName: {
     fontSize: "10px",
-    color: "#aaa",
+    color: GAME_UI.textPlaceholder,
     margin: "0 0 4px",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -221,8 +222,8 @@ const styles = {
   backBtn: {
     padding: "6px 14px",
     background: "transparent",
-    color: "#666",
-    border: "1px solid #333",
+    color: GAME_UI.textDim,
+    border: `1px solid ${GAME_UI.subtleBorder}`,
     borderRadius: "8px",
     fontSize: "13px",
     cursor: "pointer",

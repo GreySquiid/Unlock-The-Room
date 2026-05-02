@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import api from "../../services/api";
+import {
+  BARRIER_COLORS,
+  PLATFORM_COLORS,
+  KILLBRICK_BG,
+  EXIT_COLORS,
+  SPIKE_COLORS,
+  PLAYER_FALLBACK,
+  HIGH_CONTRAST_BORDER,
+  HIGH_CONTRAST_WHITE,
+  GAME_BG_FALLBACK,
+} from "../../gameColors";
 
 const TILE = 40;
 const GRAVITY = 0.4;
 const JUMP_FORCE = -12;
 const MOVE_SPEED = 3;
-const COLORS = {
-  Red: "#E24B4A",
-  Blue: "#378ADD",
-  Green: "#639922",
-  Yellow: "#EF9F27",
-  Purple: "#7F77DD",
-  White: "#E8E8E8",
-};
 
 // Module-level loop controller — only one loop can ever run across all mounts
 let activeLoopId = null;
@@ -508,7 +511,7 @@ function GameCanvas({
     if (s.bgImage) {
       ctx.drawImage(s.bgImage, 0, 0);
     } else {
-      ctx.fillStyle = "#1a1a2e";
+      ctx.fillStyle = GAME_BG_FALLBACK;
       ctx.fillRect(0, 0, W, H);
     }
 
@@ -521,21 +524,21 @@ function GameCanvas({
       const hasAbove = s.platBottomEdges.has(`${plat.x},${plat.y}`);
       const hasBelow = s.platTopEdges.has(`${plat.x},${plat.y + plat.h}`);
       // Body
-      ctx.fillStyle = "#3d3d5c";
+      ctx.fillStyle = PLATFORM_COLORS.body;
       ctx.fillRect(px, py, pw, ph);
       // Top highlight — skip when a platform is directly above (would create seam)
       if (!hasAbove) {
-        ctx.fillStyle = "#6060a0";
+        ctx.fillStyle = PLATFORM_COLORS.topHighlight;
         ctx.fillRect(px, py, pw, 3);
       }
       // Inner surface: base is ph-4 starting at y+3; adjust for neighbors
       const innerTopY = hasAbove ? py : py + 3;
       const innerH = ph - 4 + (hasAbove ? 3 : 0) + (hasBelow ? 2 : 0);
-      ctx.fillStyle = "#48486e";
+      ctx.fillStyle = PLATFORM_COLORS.inner;
       ctx.fillRect(px, innerTopY, pw, innerH);
       // Bottom shadow strip — skip when a platform is directly below
       if (!hasBelow) {
-        ctx.fillStyle = "#2a2a42";
+        ctx.fillStyle = PLATFORM_COLORS.bottomShadow;
         ctx.fillRect(px, py + ph - 2, pw, 2);
       }
     }
@@ -543,7 +546,7 @@ function GameCanvas({
     // Barriers (adjacency sets rebuilt via s.rebuildBarrierEdges only when state changes)
     for (const barrier of s.barriers) {
       if (barrier.unlocked) continue;
-      const color = COLORS[barrier.color] || "#888";
+      const color = BARRIER_COLORS[barrier.color] || BARRIER_COLORS.White;
       const bx = Math.round(barrier.x),
         by = Math.round(barrier.y);
       const bw = Math.round(barrier.w),
@@ -593,7 +596,7 @@ function GameCanvas({
       }
       ctx.globalAlpha = 1;
       if (settings?.highContrast) {
-        ctx.strokeStyle = "#fff";
+        ctx.strokeStyle = HIGH_CONTRAST_WHITE;
         ctx.lineWidth = 2;
         ctx.strokeRect(bx + 2, by + 2, bw - 4, bh - 4);
       }
@@ -602,7 +605,7 @@ function GameCanvas({
     // Keys
     for (const key of s.keys) {
       if (key.collected) continue;
-      const color = COLORS[key.color] || "#EF9F27";
+      const color = BARRIER_COLORS[key.color] || BARRIER_COLORS.Yellow;
       const cx = Math.round(key.x + TILE / 2);
       const cy = Math.round(key.y + TILE / 2);
       const r = Math.round(TILE / 3);
@@ -631,12 +634,12 @@ function GameCanvas({
       ctx.arc(shineCx, shineCy, rShine, 0, Math.PI * 2);
       ctx.fill();
       if (settings?.highContrast) {
-        ctx.strokeStyle = "#fff";
+        ctx.strokeStyle = HIGH_CONTRAST_WHITE;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = HIGH_CONTRAST_WHITE;
         ctx.font = "bold 14px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(key.color[0], cx, cy + 5);
@@ -653,7 +656,7 @@ function GameCanvas({
         const hw = Math.round(hazard.w),
           hh = Math.round(hazard.h);
         const isVertical = hazard.rotation === 90 || hazard.rotation === 270;
-        ctx.fillStyle = "#2a0000";
+        ctx.fillStyle = KILLBRICK_BG;
         ctx.fillRect(hx, hy, hw, hh);
         // Gradient runs across the thin dimension of the strip
         const laserGrad = isVertical
@@ -683,7 +686,7 @@ function GameCanvas({
           ctx.fillRect(hx, hy, hw, 1);
         }
         if (settings?.highContrast) {
-          ctx.strokeStyle = "#ff0";
+          ctx.strokeStyle = HIGH_CONTRAST_BORDER;
           ctx.lineWidth = 2;
           ctx.strokeRect(hx, hy, hw, hh);
         }
@@ -698,14 +701,14 @@ function GameCanvas({
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate((hazard.rotation * Math.PI) / 180);
-        ctx.fillStyle = "#888";
+        ctx.fillStyle = SPIKE_COLORS.body;
         ctx.beginPath();
         ctx.moveTo(-TILE / 2 + 2, TILE / 2);
         ctx.lineTo(0, -TILE / 2 + 2);
         ctx.lineTo(TILE / 2 - 2, TILE / 2);
         ctx.closePath();
         ctx.fill();
-        ctx.strokeStyle = "#aaa";
+        ctx.strokeStyle = SPIKE_COLORS.edge;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(-TILE / 2 + 2, TILE / 2);
@@ -714,7 +717,7 @@ function GameCanvas({
         ctx.restore();
       }
       if (settings?.highContrast) {
-        ctx.strokeStyle = "#ff0";
+        ctx.strokeStyle = HIGH_CONTRAST_BORDER;
         ctx.lineWidth = 2;
         ctx.strokeRect(
           Math.round(hazard.x),
@@ -732,18 +735,18 @@ function GameCanvas({
         dy = Math.round(door.y);
       const dw = Math.round(door.w),
         dh = Math.round(door.h);
-      ctx.fillStyle = allCollected ? "#0d6b4f" : "#252538";
+      ctx.fillStyle = allCollected ? EXIT_COLORS.activeBg : EXIT_COLORS.inactiveBg;
       ctx.fillRect(dx, dy, dw, dh);
       // Door border
-      ctx.strokeStyle = allCollected ? "#1DB988" : "#555";
+      ctx.strokeStyle = allCollected ? EXIT_COLORS.activeBorder : EXIT_COLORS.inactiveBorder;
       ctx.lineWidth = 2;
       ctx.strokeRect(dx + 1, dy + 1, dw - 2, dh - 2);
       // Door detail (arch suggestion)
-      ctx.strokeStyle = allCollected ? "#80F5D2" : "#444";
+      ctx.strokeStyle = allCollected ? EXIT_COLORS.activeInner : EXIT_COLORS.inactiveInner;
       ctx.lineWidth = 1;
       ctx.strokeRect(dx + 4, dy + 4, dw - 8, dh - 4);
       // Label
-      ctx.fillStyle = allCollected ? "#80F5D2" : "#666";
+      ctx.fillStyle = allCollected ? EXIT_COLORS.activeLabel : EXIT_COLORS.inactiveLabel;
       ctx.font = "bold 10px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("EXIT", dx + dw / 2, dy + dh / 2 + 4);
@@ -775,7 +778,7 @@ function GameCanvas({
         ctx.restore();
       }
     } else {
-      ctx.fillStyle = "#9898ac";
+      ctx.fillStyle = PLAYER_FALLBACK;
       ctx.fillRect(Math.round(p2.x), Math.round(p2.y), p2.w, p2.h);
     }
   };
@@ -795,7 +798,7 @@ function GameCanvas({
     return (
       <div style={styles.loading}>
         <p style={styles.loadingText}>Loading level...</p>
-        <p style={{ color: "#444", fontSize: "12px" }}>{level.name}</p>
+        <p style={{ color: "var(--text-secondary)", fontSize: "12px" }}>{level.name}</p>
       </div>
     );
   }
@@ -872,7 +875,7 @@ function GameCanvas({
               <div style={styles.pauseMenu}>
                 <p
                   style={{
-                    color: "#80F5D2",
+                    color: "var(--game-accent)",
                     fontSize: "13px",
                     margin: "0 0 4px",
                   }}
@@ -882,7 +885,7 @@ function GameCanvas({
                 <h2
                   style={{
                     ...styles.pauseTitle,
-                    color: "#fff",
+                    color: "var(--surface)",
                     fontSize: "28px",
                   }}
                 >
@@ -890,7 +893,7 @@ function GameCanvas({
                 </h2>
                 <p
                   style={{
-                    color: "#888",
+                    color: "var(--text-subtle)",
                     fontSize: "12px",
                     margin: "-6px 0 12px",
                   }}
@@ -974,13 +977,13 @@ const styles = {
     gap: "12px",
     minHeight: "100vh",
   },
-  loadingText: { color: "#ccc", fontSize: "15px", letterSpacing: "0.3px" },
+  loadingText: { color: "var(--game-text-dim)", fontSize: "15px", letterSpacing: "0.3px" },
   hud: {
     display: "flex",
     gap: "12px",
     alignItems: "center",
-    background: "#111120",
-    borderBottom: "1px solid #2a2a48",
+    background: "var(--game-hud-bg)",
+    borderBottom: "1px solid var(--game-hud-border)",
     padding: "8px 14px",
     borderRadius: "10px 10px 0 0",
     width: "100%",
@@ -993,13 +996,13 @@ const styles = {
     gap: "16px",
   },
   hudLevelName: {
-    color: "#e0e0e0",
+    color: "var(--game-text)",
     fontSize: "13px",
     fontWeight: "600",
     letterSpacing: "0.2px",
   },
   hudTimer: {
-    color: "#aaa",
+    color: "var(--text-placeholder)",
     fontSize: "13px",
     fontWeight: "500",
     fontVariantNumeric: "tabular-nums",
@@ -1013,15 +1016,15 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: "6px",
     padding: "3px 9px",
-    color: "#e0e0e0",
+    color: "var(--game-text)",
     fontSize: "12px",
     fontWeight: "600",
   },
   pauseBtn: {
     padding: "5px 13px",
-    background: "#2a2a44",
-    color: "#ccc",
-    border: "1px solid #3a3a5a",
+    background: "var(--game-btn-bg)",
+    color: "var(--game-text-dim)",
+    border: "1px solid var(--game-panel-border)",
     borderRadius: "6px",
     fontSize: "12px",
     fontWeight: "500",
@@ -1031,7 +1034,7 @@ const styles = {
   canvas: {
     display: "block",
     borderRadius: "0 0 10px 10px",
-    border: "1px solid #2a2a48",
+    border: "1px solid var(--game-hud-border)",
     borderTop: "none",
   },
   pauseOverlay: {
@@ -1047,8 +1050,8 @@ const styles = {
     borderRadius: "0 0 10px 10px",
   },
   pauseMenu: {
-    background: "#1c1c30",
-    border: "1px solid #3a3a5a",
+    background: "var(--game-panel-bg)",
+    border: "1px solid var(--game-panel-border)",
     borderRadius: "14px",
     padding: "2rem 2rem 1.5rem",
     display: "flex",
@@ -1059,7 +1062,7 @@ const styles = {
     boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
   },
   pauseTitle: {
-    color: "#e8e8e8",
+    color: "var(--game-text-bright)",
     fontSize: "20px",
     fontWeight: "700",
     margin: "0 0 6px",
@@ -1069,8 +1072,8 @@ const styles = {
   pauseMenuResume: {
     width: "100%",
     padding: "11px",
-    background: "#534AB7",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "var(--surface)",
     border: "none",
     borderRadius: "8px",
     fontSize: "14px",
@@ -1080,9 +1083,9 @@ const styles = {
   pauseMenuItem: {
     width: "100%",
     padding: "10px",
-    background: "#252538",
-    color: "#ccc",
-    border: "1px solid #3a3a5a",
+    background: "var(--game-btn-item-bg)",
+    color: "var(--game-text-dim)",
+    border: "1px solid var(--game-panel-border)",
     borderRadius: "8px",
     fontSize: "14px",
     cursor: "pointer",
@@ -1090,7 +1093,7 @@ const styles = {
   controls: {
     display: "flex",
     gap: "20px",
-    color: "#444",
+    color: "var(--text-secondary)",
     fontSize: "11px",
     marginTop: "8px",
     letterSpacing: "0.2px",

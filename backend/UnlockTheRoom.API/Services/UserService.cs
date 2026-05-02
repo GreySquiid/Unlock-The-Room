@@ -87,8 +87,9 @@ public class UserService
 
     public async Task<AuthResponseDto?> DemoLoginAsync()
     {
+        var demoEmail = _configuration.GetValue<string>("Features:DemoEmail") ?? "demo@greysquiid.com";
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == "demo@greysquiid.com");
+            .FirstOrDefaultAsync(u => u.Email == demoEmail);
 
         if (user == null) return null;
 

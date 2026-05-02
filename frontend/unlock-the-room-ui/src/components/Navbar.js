@@ -46,8 +46,8 @@ function Navbar() {
 
 const styles = {
   nav: {
-    background: "#fff",
-    borderBottom: "1px solid #e8e8e8",
+    background: "var(--surface)",
+    borderBottom: "1px solid var(--border-light)",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
     padding: "0 24px",
     display: "flex",
@@ -62,7 +62,7 @@ const styles = {
     fontWeight: "700",
     fontSize: "14px",
     letterSpacing: "0.2px",
-    color: "#1a1a1a",
+    color: "var(--text)",
     flexShrink: 0,
   },
   links: { display: "flex", gap: "2px" },
@@ -73,13 +73,13 @@ const styles = {
     cursor: "pointer",
     background: "transparent",
     border: "1px solid transparent",
-    color: "#555",
+    color: "var(--text-muted)",
     fontWeight: "400",
   },
   navLinkActive: {
-    background: "#EEF4FF",
-    border: "1px solid #D0DEFF",
-    color: "#185FA5",
+    background: "var(--color-primary-bg)",
+    border: "1px solid var(--color-primary-border)",
+    color: "var(--color-primary)",
     fontWeight: "600",
   },
   right: {
@@ -90,7 +90,7 @@ const styles = {
   },
   userLabel: {
     fontSize: "12px",
-    color: "#999",
+    color: "var(--text-subtle)",
     maxWidth: "200px",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -100,9 +100,9 @@ const styles = {
     fontSize: "12px",
     padding: "5px 12px",
     borderRadius: "6px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     background: "transparent",
-    color: "#555",
+    color: "var(--text-muted)",
     cursor: "pointer",
   },
 };

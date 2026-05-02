@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GAME_UI } from "../../gameColors";
 
 function Settings({ settings, onSave, onBack }) {
   const [local, setLocal] = useState({ ...settings });
@@ -51,7 +52,7 @@ function SettingRow({ label, description, checked, onChange }) {
         <p style={styles.rowDesc}>{description}</p>
       </div>
       <div
-        style={{ ...styles.toggle, background: checked ? "#534AB7" : "#444" }}
+        style={{ ...styles.toggle, background: checked ? "var(--color-primary)" : GAME_UI.cardBorder }}
         onClick={onChange}
       >
         <div
@@ -72,14 +73,14 @@ const styles = {
     justifyContent: "center",
   },
   card: {
-    background: "#2a2a3e",
-    border: "1px solid #444",
+    background: GAME_UI.cardBg,
+    border: `1px solid ${GAME_UI.cardBorder}`,
     borderRadius: "16px",
     padding: "2rem",
     width: "420px",
   },
   title: {
-    color: "#fff",
+    color: "white",
     fontSize: "22px",
     fontWeight: "600",
     marginBottom: "1.5rem",
@@ -90,11 +91,11 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "14px 0",
-    borderBottom: "1px solid #333",
+    borderBottom: `1px solid ${GAME_UI.subtleBorder}`,
   },
   rowText: { flex: 1, paddingRight: "16px" },
-  rowLabel: { color: "#fff", fontSize: "14px", fontWeight: "500", margin: 0 },
-  rowDesc: { color: "#888", fontSize: "12px", margin: "3px 0 0" },
+  rowLabel: { color: "white", fontSize: "14px", fontWeight: "500", margin: 0 },
+  rowDesc: { color: GAME_UI.textMuted, fontSize: "12px", margin: "3px 0 0" },
   toggle: {
     width: "44px",
     height: "24px",
@@ -111,15 +112,15 @@ const styles = {
     width: "20px",
     height: "20px",
     borderRadius: "50%",
-    background: "#fff",
+    background: "white",
     transition: "transform 0.2s",
   },
   actions: { display: "flex", gap: "10px", marginTop: "1.5rem" },
   saveBtn: {
     flex: 1,
     padding: "10px",
-    background: "#534AB7",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "white",
     border: "none",
     borderRadius: "8px",
     fontSize: "14px",
@@ -130,8 +131,8 @@ const styles = {
     flex: 1,
     padding: "10px",
     background: "transparent",
-    color: "#888",
-    border: "1px solid #444",
+    color: GAME_UI.textMuted,
+    border: `1px solid ${GAME_UI.cardBorder}`,
     borderRadius: "8px",
     fontSize: "14px",
     cursor: "pointer",

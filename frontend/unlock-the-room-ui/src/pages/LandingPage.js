@@ -5,13 +5,13 @@ import api from '../services/api';
 const GITHUB_URL = 'https://github.com/GreySquiid/Unlock-The-Room';
 
 const TECH_BADGES = [
-  { label: '.NET 8', color: '#512BD4' },
-  { label: 'React 18', color: '#61DAFB', dark: true },
-  { label: 'PostgreSQL', color: '#336791' },
-  { label: 'Anthropic API', color: '#D97706' },
-  { label: 'JWT Auth', color: '#10B981' },
-  { label: 'Docker', color: '#2496ED' },
-  { label: 'Railway', color: '#0B0D0E' },
+  { label: '.NET 8',        color: 'var(--badge-dotnet)' },
+  { label: 'React 18',      color: 'var(--badge-react)', dark: true },
+  { label: 'PostgreSQL',    color: 'var(--badge-postgresql)' },
+  { label: 'Anthropic API', color: 'var(--badge-anthropic)' },
+  { label: 'JWT Auth',      color: 'var(--color-success)' },
+  { label: 'Docker',        color: 'var(--badge-docker)' },
+  { label: 'Railway',       color: 'var(--badge-railway)' },
 ];
 
 function LandingPage() {
@@ -88,8 +88,8 @@ function LandingPage() {
 
           <div style={styles.ctaCard}>
             <div style={{ ...styles.ctaNumber, ...styles.ctaNumberSecondary }}>2</div>
-            <h2 style={{ ...styles.ctaTitle, color: '#1a1a1a' }}>Play the game</h2>
-            <p style={{ ...styles.ctaDesc, color: '#555' }}>
+            <h2 style={{ ...styles.ctaTitle, color: 'var(--text)' }}>Play the game</h2>
+            <p style={{ ...styles.ctaDesc, color: 'var(--text-muted)' }}>
               Eight hand-crafted levels plus AI-generated levels. Keys, barriers, spikes — escape the room.
             </p>
             <button
@@ -102,8 +102,8 @@ function LandingPage() {
 
           <div style={styles.ctaCard}>
             <div style={{ ...styles.ctaNumber, ...styles.ctaNumberSecondary }}>3</div>
-            <h2 style={{ ...styles.ctaTitle, color: '#1a1a1a' }}>View the code</h2>
-            <p style={{ ...styles.ctaDesc, color: '#555' }}>
+            <h2 style={{ ...styles.ctaTitle, color: 'var(--text)' }}>View the code</h2>
+            <p style={{ ...styles.ctaDesc, color: 'var(--text-muted)' }}>
               Full source on GitHub — .NET 8 API, React SPA, canvas game engine, and AI pipeline.
             </p>
             <a
@@ -143,7 +143,7 @@ function LandingPage() {
                 {TECH_BADGES.map(b => (
                   <span
                     key={b.label}
-                    style={{ ...styles.badge, background: b.color, color: b.dark ? '#1a1a1a' : '#fff' }}
+                    style={{ ...styles.badge, background: b.color, color: b.dark ? 'var(--text)' : 'var(--surface)' }}
                   >
                     {b.label}
                   </span>
@@ -179,7 +179,7 @@ function LandingPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#f8f8f8',
+    background: 'var(--surface-subtle)',
     fontFamily: "'Segoe UI', system-ui, sans-serif",
     display: 'flex',
     flexDirection: 'column',
@@ -187,22 +187,22 @@ const styles = {
 
   /* Nav */
   nav: {
-    background: '#fff',
-    borderBottom: '1px solid #e8e8e8',
+    background: 'var(--surface)',
+    borderBottom: '1px solid var(--border-light)',
     padding: '14px 2rem',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  navBrand: { fontSize: '15px', fontWeight: '700', color: '#1a1a1a' },
-  navLink: { fontSize: '13px', color: '#6366F1', textDecoration: 'none', fontWeight: '500' },
+  navBrand: { fontSize: '15px', fontWeight: '700', color: 'var(--text)' },
+  navLink: { fontSize: '13px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: '500' },
 
   /* Hero */
   hero: {
-    background: 'linear-gradient(160deg, #1a1a2e 0%, #16213E 60%, #0F3460 100%)',
+    background: 'linear-gradient(160deg, var(--game-bg) 0%, var(--game-bg-mid) 60%, var(--game-bg-deep) 100%)',
     padding: '4rem 2rem 5rem',
     textAlign: 'center',
-    color: '#fff',
+    color: 'var(--surface)',
   },
   squid: {
     width: '64px',
@@ -234,7 +234,7 @@ const styles = {
     textAlign: 'left',
   },
   ctaCard: {
-    background: '#fff',
+    background: 'var(--surface)',
     borderRadius: '14px',
     padding: '1.75rem',
     display: 'flex',
@@ -242,7 +242,7 @@ const styles = {
     gap: '10px',
   },
   ctaCardPrimary: {
-    background: '#6366F1',
+    background: 'var(--color-primary)',
     boxShadow: '0 8px 32px rgba(99,102,241,0.45)',
   },
   ctaNumber: {
@@ -250,7 +250,7 @@ const styles = {
     height: '28px',
     borderRadius: '50%',
     background: 'rgba(255,255,255,0.2)',
-    color: '#fff',
+    color: 'var(--surface)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -258,11 +258,11 @@ const styles = {
     fontWeight: '700',
     flexShrink: 0,
   },
-  ctaNumberSecondary: { background: '#f0f0f0', color: '#555' },
-  ctaTitle: { fontSize: '16px', fontWeight: '700', margin: 0, color: '#fff' },
+  ctaNumberSecondary: { background: 'var(--bg-hover)', color: 'var(--text-muted)' },
+  ctaTitle: { fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--surface)' },
   ctaDesc: { fontSize: '13px', color: 'rgba(255,255,255,0.78)', margin: 0, lineHeight: 1.55, flexGrow: 1 },
   ctaError: { fontSize: '12px', color: 'rgba(255,255,255,0.9)', margin: 0, background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '8px 10px' },
-  ctaErrorLink: { color: '#fff', fontWeight: '600' },
+  ctaErrorLink: { color: 'var(--surface)', fontWeight: '600' },
   ctaBtn: {
     padding: '10px 18px',
     borderRadius: '8px',
@@ -273,8 +273,8 @@ const styles = {
     alignSelf: 'flex-start',
     marginTop: '4px',
   },
-  ctaBtnPrimary: { background: '#fff', color: '#6366F1' },
-  ctaBtnSecondary: { background: '#6366F1', color: '#fff' },
+  ctaBtnPrimary: { background: 'var(--surface)', color: 'var(--color-primary)' },
+  ctaBtnSecondary: { background: 'var(--color-primary)', color: 'var(--surface)' },
   ctaBtnDisabled: { opacity: 0.7, cursor: 'not-allowed' },
   spinnerRow: { display: 'flex', alignItems: 'center', gap: '8px' },
   spinner: {
@@ -282,18 +282,18 @@ const styles = {
     width: '14px',
     height: '14px',
     border: '2px solid rgba(99,102,241,0.3)',
-    borderTopColor: '#6366F1',
+    borderTopColor: 'var(--color-primary)',
     borderRadius: '50%',
     animation: 'spin 0.7s linear infinite',
   },
 
   /* About */
-  about: { padding: '4rem 2rem', background: '#fff' },
+  about: { padding: '4rem 2rem', background: 'var(--surface)' },
   aboutInner: { maxWidth: '960px', margin: '0 auto' },
-  aboutTitle: { fontSize: '1.6rem', fontWeight: '700', margin: '0 0 2rem', color: '#1a1a1a' },
+  aboutTitle: { fontSize: '1.6rem', fontWeight: '700', margin: '0 0 2rem', color: 'var(--text)' },
   aboutGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'start' },
   aboutText: { display: 'flex', flexDirection: 'column', gap: '1rem' },
-  aboutPara: { fontSize: '14px', color: '#444', lineHeight: 1.7, margin: 0 },
+  aboutPara: { fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 },
   badgeRow: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' },
   badge: {
     padding: '4px 10px',
@@ -304,8 +304,8 @@ const styles = {
   },
   screenshotCol: { display: 'flex', flexDirection: 'column', gap: '12px' },
   screenshotPlaceholder: {
-    background: '#f5f5f5',
-    border: '1px solid #e8e8e8',
+    background: 'var(--bg)',
+    border: '1px solid var(--border-light)',
     borderRadius: '10px',
     padding: '1.5rem',
     minHeight: '120px',
@@ -314,12 +314,12 @@ const styles = {
     justifyContent: 'center',
     gap: '6px',
   },
-  screenshotLabel: { fontSize: '14px', fontWeight: '600', color: '#1a1a1a' },
-  screenshotSub: { fontSize: '12px', color: '#888' },
+  screenshotLabel: { fontSize: '14px', fontWeight: '600', color: 'var(--text)' },
+  screenshotSub: { fontSize: '12px', color: 'var(--text-subtle)' },
 
   /* Footer */
   footer: {
-    background: '#1a1a2e',
+    background: 'var(--game-bg)',
     color: 'rgba(255,255,255,0.5)',
     padding: '1.25rem 2rem',
     display: 'flex',

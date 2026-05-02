@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../../services/api";
+import { GAME_UI } from "../../gameColors";
 
 function GameLogin({ player, onLogin, onLogout, onBack }) {
   const [mode, setMode] = useState("login");
@@ -17,7 +18,7 @@ function GameLogin({ player, onLogin, onLogout, onBack }) {
           <p style={styles.subtitle}>Logged in as</p>
           <p
             style={{
-              color: "#fff",
+              color: "white",
               fontSize: "16px",
               fontWeight: "600",
               marginBottom: "1.5rem",
@@ -30,7 +31,7 @@ function GameLogin({ player, onLogin, onLogout, onBack }) {
           </button>
           {(player.role === 'Developer' || player.Role === 'Developer') && (
             <button
-              style={{ ...styles.submitBtn, background: '#185FA5', marginTop: '8px' }}
+              style={{ ...styles.submitBtn, background: GAME_UI.devDashBlue, marginTop: '8px' }}
               onClick={() => window.open('/dashboard', '_blank')}
             >
               Developer dashboard
@@ -40,7 +41,7 @@ function GameLogin({ player, onLogin, onLogout, onBack }) {
             style={{
               ...styles.submitBtn,
               background: "transparent",
-              border: "1px solid #444",
+              border: `1px solid ${GAME_UI.cardBorder}`,
               marginTop: "8px",
             }}
             onClick={onBack}
@@ -164,43 +165,43 @@ const styles = {
     justifyContent: "center",
   },
   card: {
-    background: "#2a2a3e",
-    border: "1px solid #444",
+    background: GAME_UI.cardBg,
+    border: `1px solid ${GAME_UI.cardBorder}`,
     borderRadius: "16px",
     padding: "2rem",
     width: "360px",
   },
   title: {
-    color: "#fff",
+    color: "white",
     fontSize: "22px",
     fontWeight: "600",
     margin: "0 0 4px",
   },
-  subtitle: { color: "#888", fontSize: "13px", marginBottom: "1.5rem" },
+  subtitle: { color: GAME_UI.textMuted, fontSize: "13px", marginBottom: "1.5rem" },
   field: { marginBottom: "14px" },
   label: {
     display: "block",
     fontSize: "12px",
     fontWeight: "500",
-    color: "#aaa",
+    color: GAME_UI.textPlaceholder,
     marginBottom: "5px",
   },
   input: {
     width: "100%",
     padding: "9px 12px",
-    background: "#1a1a2e",
-    border: "1px solid #444",
+    background: "var(--game-bg)",
+    border: `1px solid ${GAME_UI.cardBorder}`,
     borderRadius: "8px",
-    color: "#fff",
+    color: "white",
     fontSize: "14px",
     boxSizing: "border-box",
   },
-  error: { color: "#E24B4A", fontSize: "13px", marginBottom: "12px" },
+  error: { color: "var(--color-danger)", fontSize: "13px", marginBottom: "12px" },
   submitBtn: {
     width: "100%",
     padding: "11px",
-    background: "#534AB7",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "white",
     border: "none",
     borderRadius: "8px",
     fontSize: "14px",
@@ -210,12 +211,12 @@ const styles = {
   },
   switchText: {
     fontSize: "13px",
-    color: "#888",
+    color: GAME_UI.textMuted,
     textAlign: "center",
     marginBottom: "12px",
   },
   switchLink: {
-    color: "#7F77DD",
+    color: GAME_UI.accentPurple,
     cursor: "pointer",
     textDecoration: "underline",
   },
@@ -223,8 +224,8 @@ const styles = {
     width: "100%",
     padding: "9px",
     background: "transparent",
-    color: "#666",
-    border: "1px solid #333",
+    color: GAME_UI.textDim,
+    border: `1px solid ${GAME_UI.subtleBorder}`,
     borderRadius: "8px",
     fontSize: "13px",
     cursor: "pointer",

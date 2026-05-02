@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GAME_UI } from "../../gameColors";
 
 function MainMenu({ player, onNavigate }) {
   return (
@@ -73,15 +74,15 @@ const styles = {
   title: {
     fontSize: "48px",
     fontWeight: "800",
-    color: "#fff",
+    color: "white",
     margin: 0,
     letterSpacing: "3px",
     textTransform: "uppercase",
-    textShadow: "0 0 40px rgba(127,119,221,0.5), 0 2px 8px rgba(0,0,0,0.5)",
+    textShadow: `0 0 40px rgba(127,119,221,0.5), 0 2px 8px rgba(0,0,0,0.5)`,
   },
   subtitle: {
     fontSize: "14px",
-    color: "#5a5a7a",
+    color: GAME_UI.textSubtle,
     marginTop: "10px",
     letterSpacing: "0.5px",
   },
@@ -97,9 +98,9 @@ const styles = {
     fontSize: "15px",
     fontWeight: "500",
     borderRadius: "10px",
-    border: "1px solid #363654",
-    background: "#222238",
-    color: "#d0d0d0",
+    border: `1px solid ${GAME_UI.menuBtnBorder}`,
+    background: GAME_UI.menuBtnBg,
+    color: GAME_UI.textNormal,
     cursor: "pointer",
     textAlign: "left",
     display: "flex",
@@ -108,31 +109,31 @@ const styles = {
     letterSpacing: "0.2px",
   },
   btnHover: {
-    background: "#2c2c4a",
-    border: "1px solid #4a4a6a",
-    color: "#fff",
+    background: GAME_UI.menuBtnHoverBg,
+    border: `1px solid ${GAME_UI.menuBtnHoverBorder}`,
+    color: "white",
   },
   btnPrimary: {
-    background: "#534AB7",
-    border: "1px solid #7F77DD",
-    color: "#fff",
+    background: "var(--color-primary)",
+    border: `1px solid ${GAME_UI.accentPurple}`,
+    color: "white",
     fontWeight: "600",
   },
   btnPrimaryHover: {
-    background: "#6258cc",
-    border: "1px solid #9590e8",
+    background: GAME_UI.primaryHoverBg,
+    border: `1px solid ${GAME_UI.primaryHoverBorder}`,
   },
   btnDisabled: { opacity: 0.38, cursor: "not-allowed" },
   lockIcon: { fontSize: "13px", opacity: 0.7 },
   tooltip: {
     fontSize: "11px",
-    color: "#5a5a7a",
+    color: GAME_UI.textSubtle,
     marginTop: "4px",
     textAlign: "center",
   },
   loggedIn: {
     fontSize: "12px",
-    color: "#444466",
+    color: GAME_UI.textLocked,
     letterSpacing: "0.3px",
   },
 };

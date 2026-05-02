@@ -1,25 +1,85 @@
 :root {
-  --brand-blue: #185FA5;
-  --brand-blue-dark: #124d89;
-  --brand-purple: #534AB7;
-  --brand-purple-light: #7F77DD;
+  /* ── Brand / Primary ────────────────────────────────────────────────── */
+  --color-primary: #6366F1;
+  --color-primary-hover: #4F46E5;
+  --color-primary-bg: #EEF4FF;
+  --color-primary-border: #C9C5F0;
 
+  /* ── Status: success ─────────────────────────────────────────────────── */
+  --color-success: #10B981;
+  --color-success-bg: #EAF3DE;
+  --color-success-text: #3B6D11;
+
+  /* ── Status: warning ─────────────────────────────────────────────────── */
+  --color-warning: #F59E0B;
+  --color-warning-bg: #FAEEDA;
+  --color-warning-border: #F0D060;
+  --color-warning-text: #7A6010;
+
+  /* ── Status: danger ──────────────────────────────────────────────────── */
+  --color-danger: #EF4444;
+  --color-danger-bg: #FCEBEB;
+  --color-danger-bg-subtle: #fff8f8;
+  --color-danger-border: #f5c6c6;
+  --color-danger-text: #A32D2D;
+
+  /* ── Status: info ────────────────────────────────────────────────────── */
+  --color-info: #3B82F6;
+
+  /* ── Text ────────────────────────────────────────────────────────────── */
   --text: #1a1a1a;
+  --text-strong: #333333;
+  --text-secondary: #444444;
   --text-muted: #555555;
-  --text-subtle: #999999;
+  --text-dim: #666666;
+  --text-subtle: #888888;
+  --text-placeholder: #aaaaaa;
 
-  --border: #e0e0e0;
-  --border-strong: #cccccc;
+  /* ── Surfaces ────────────────────────────────────────────────────────── */
   --surface: #ffffff;
+  --surface-raised: #fafafa;
+  --surface-subtle: #f8f8f8;
   --bg: #f5f5f5;
+  --bg-hover: #f0f0f0;
 
+  /* ── Borders ─────────────────────────────────────────────────────────── */
+  --border: #e0e0e0;
+  --border-light: #e8e8e8;
+  --border-subtle: #efefef;
+  --border-divider: #dddddd;
+  --border-strong: #cccccc;
+
+  /* ── Game chrome (shared with landing page hero/footer) ──────────────── */
   --game-bg: #1a1a2e;
-  --game-surface: #2a2a3e;
-  --game-border: #444444;
+  --game-bg-mid: #16213E;
+  --game-bg-deep: #0F3460;
+  --game-hud-bg: #111120;
+  --game-hud-border: #2a2a48;
+  --game-panel-bg: #1c1c30;
+  --game-panel-border: #3a3a5a;
+  --game-btn-bg: #2a2a44;
+  --game-btn-item-bg: #252538;
+  --game-text: #e0e0e0;
+  --game-text-bright: #e8e8e8;
+  --game-text-dim: #cccccc;
+  --game-accent: #80F5D2;
 
+  /* ── Scrollbar ───────────────────────────────────────────────────────── */
+  --scrollbar-thumb: #d0d0d0;
+  --scrollbar-thumb-hover: #b8b8b8;
+
+  /* ── Border radii ────────────────────────────────────────────────────── */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
+
+  /* ── Third-party brand palette (tech stack badges on landing page) ───── */
+  --badge-dotnet: #512BD4;
+  --badge-react: #61DAFB;
+  --badge-postgresql: #336791;
+  --badge-anthropic: #D97706;
+  --badge-docker: #2496ED;
+  --badge-railway: #0B0D0E;
 }
 
 * {
@@ -65,14 +125,14 @@ button:disabled {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--brand-blue);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
 
 /* ── Selection ───────────────────────────────────────────────────────────── */
 ::selection {
-  background: var(--brand-blue);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--surface);
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
@@ -84,9 +144,14 @@ textarea:focus-visible {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d0d0d0;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #b8b8b8;
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ── Spinner (used in landing page demo login button) ────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

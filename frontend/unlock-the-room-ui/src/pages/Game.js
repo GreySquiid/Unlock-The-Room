@@ -147,7 +147,7 @@ function Game() {
 const styles = {
   shell: {
     minHeight: "100vh",
-    background: "#1a1a2e",
+    background: 'var(--game-bg)',
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

@@ -135,13 +135,9 @@ function Reports() {
               <StatCard label="Total levels" value={report.totalLevels} />
               <StatCard label="Published" value={report.publishedCount} />
               <StatCard label="Validated" value={report.validatedCount} />
-              <StatCard label="Easy" value={report.easyCount} color="#3B6D11" />
-              <StatCard
-                label="Medium"
-                value={report.mediumCount}
-                color="#854F0B"
-              />
-              <StatCard label="Hard" value={report.hardCount} color="#A32D2D" />
+              <StatCard label="Easy" value={report.easyCount} color="var(--color-success-text)" />
+              <StatCard label="Medium" value={report.mediumCount} color="var(--color-warning-text)" />
+              <StatCard label="Hard" value={report.hardCount} color="var(--color-danger-text)" />
             </div>
 
             <div style={styles.tableCard}>
@@ -177,7 +173,7 @@ function Reports() {
                   {report.levels.map((level, idx) => (
                     <tr
                       key={level.id}
-                      style={{ background: idx % 2 === 0 ? "#fafafa" : "#fff" }}
+                      style={{ background: idx % 2 === 0 ? "var(--surface-raised)" : "var(--surface)" }}
                     >
                       <td style={styles.td}>{level.id}</td>
                       <td style={styles.td}>{level.name}</td>
@@ -223,7 +219,7 @@ function StatCard({ label, value, color }) {
   return (
     <div style={styles.statCard}>
       <p style={styles.statLabel}>{label}</p>
-      <p style={{ ...styles.statValue, color: color || "#1a1a1a" }}>{value}</p>
+      <p style={{ ...styles.statValue, color: color || "var(--text)" }}>{value}</p>
     </div>
   );
 }
@@ -237,10 +233,10 @@ const styles = {
     marginBottom: "1.5rem",
   },
   title: { fontSize: "22px", fontWeight: "600", marginBottom: "4px" },
-  generatedAt: { fontSize: "13px", color: "#666" },
+  generatedAt: { fontSize: "13px", color: "var(--text-dim)" },
   filterCard: {
-    background: "#fff",
-    border: "1px solid #e0e0e0",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     padding: "1.25rem",
     marginBottom: "1.5rem",
@@ -248,7 +244,7 @@ const styles = {
   filterTitle: {
     fontSize: "13px",
     fontWeight: "600",
-    color: "#444",
+    color: "var(--text-secondary)",
     marginBottom: "12px",
   },
   filterGrid: {
@@ -258,24 +254,24 @@ const styles = {
     marginBottom: "1rem",
   },
   field: { display: "flex", flexDirection: "column", gap: "4px" },
-  label: { fontSize: "12px", fontWeight: "500", color: "#555" },
+  label: { fontSize: "12px", fontWeight: "500", color: "var(--text-muted)" },
   select: {
     padding: "7px 10px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "13px",
-    background: "#fff",
+    background: "var(--surface)",
   },
   input: {
     padding: "7px 10px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "13px",
   },
   primaryBtn: {
     padding: "8px 20px",
-    background: "#185FA5",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "var(--surface)",
     border: "none",
     borderRadius: "8px",
     fontSize: "13px",
@@ -289,71 +285,71 @@ const styles = {
     marginBottom: "1.5rem",
   },
   statCard: {
-    background: "#fff",
-    border: "1px solid #e0e0e0",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     padding: "1rem",
   },
   statLabel: {
     fontSize: "11px",
-    color: "#888",
+    color: "var(--text-subtle)",
     marginBottom: "6px",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
   },
   statValue: { fontSize: "26px", fontWeight: "600" },
   tableCard: {
-    background: "#fff",
-    border: "1px solid #e0e0e0",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     overflow: "hidden",
   },
-  tableHeader: { padding: "1rem 1.25rem", borderBottom: "1px solid #e0e0e0" },
+  tableHeader: { padding: "1rem 1.25rem", borderBottom: "1px solid var(--border)" },
   tableTitle: { fontSize: "15px", fontWeight: "600" },
-  tableSubtitle: { fontSize: "12px", color: "#888", marginTop: "2px" },
+  tableSubtitle: { fontSize: "12px", color: "var(--text-subtle)", marginTop: "2px" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: "12px" },
   th: {
     textAlign: "left",
     padding: "8px 12px",
-    color: "#666",
-    borderBottom: "1px solid #e0e0e0",
-    background: "#fafafa",
+    color: "var(--text-dim)",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface-raised)",
     fontWeight: "500",
     whiteSpace: "nowrap",
   },
   td: {
     padding: "8px 12px",
-    borderBottom: "1px solid #f0f0f0",
+    borderBottom: "1px solid var(--bg-hover)",
     whiteSpace: "nowrap",
   },
-  empty: { padding: "2rem", textAlign: "center", color: "#999" },
+  empty: { padding: "2rem", textAlign: "center", color: "var(--text-subtle)" },
   badgeGreen: {
-    background: "#EAF3DE",
-    color: "#3B6D11",
+    background: "var(--color-success-bg)",
+    color: "var(--color-success-text)",
     padding: "2px 8px",
     borderRadius: "99px",
     fontSize: "11px",
     fontWeight: "500",
   },
   badgeAmber: {
-    background: "#FAEEDA",
-    color: "#854F0B",
+    background: "var(--color-warning-bg)",
+    color: "var(--color-warning-text)",
     padding: "2px 8px",
     borderRadius: "99px",
     fontSize: "11px",
     fontWeight: "500",
   },
   badgeRed: {
-    background: "#FCEBEB",
-    color: "#A32D2D",
+    background: "var(--color-danger-bg)",
+    color: "var(--color-danger-text)",
     padding: "2px 8px",
     borderRadius: "99px",
     fontSize: "11px",
     fontWeight: "500",
   },
   badgeGray: {
-    background: "#f0f0f0",
-    color: "#666",
+    background: "var(--bg-hover)",
+    color: "var(--text-dim)",
     padding: "2px 8px",
     borderRadius: "99px",
     fontSize: "11px",

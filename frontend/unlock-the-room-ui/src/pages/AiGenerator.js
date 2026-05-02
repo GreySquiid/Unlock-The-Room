@@ -2,22 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../services/api";
-
-const COLORS = {
-  Red: "#E24B4A",
-  Blue: "#378ADD",
-  Green: "#639922",
-  Yellow: "#EF9F27",
-  Purple: "#7F77DD",
-  White: "#E8E8E8",
-};
-const OBJECT_COLORS = {
-  Key: "#EF9F27",
-  Barrier: "#7F77DD",
-  Button: "#888780",
-  Hazard: "#E24B4A",
-  ExitDoor: "#1D9E75",
-};
+import { BARRIER_COLORS, OBJECT_COLORS } from "../gameColors";
 
 function AiGenerator() {
   const [form, setForm] = useState({
@@ -97,7 +82,7 @@ function AiGenerator() {
         <div
           style={{
             display: "inline-block",
-            border: "1px solid #ddd",
+            border: "1px solid var(--border-divider)",
             borderRadius: "4px",
             overflow: "hidden",
           }}
@@ -118,10 +103,10 @@ function AiGenerator() {
                     background: cell
                       ? cell.objectType === "Key" ||
                         cell.objectType === "Barrier"
-                        ? COLORS[cell.color] || OBJECT_COLORS[cell.objectType]
-                        : OBJECT_COLORS[cell.objectType] || "#ccc"
-                      : "#f8f8f8",
-                    border: "0.5px solid #e8e8e8",
+                        ? BARRIER_COLORS[cell.color] || OBJECT_COLORS[cell.objectType]
+                        : OBJECT_COLORS[cell.objectType] || "var(--border-strong)"
+                      : "var(--surface-subtle)",
+                    border: "0.5px solid var(--border-light)",
                     opacity: cell?.objectType === "Barrier" ? 0.6 : 1,
                     display: "flex",
                     alignItems: "center",
@@ -142,18 +127,12 @@ function AiGenerator() {
 
   const getIcon = (type) => {
     switch (type) {
-      case "Key":
-        return "🗝";
-      case "Barrier":
-        return "▪";
-      case "Button":
-        return "⬛";
-      case "Hazard":
-        return "▲";
-      case "ExitDoor":
-        return "🚪";
-      default:
-        return "";
+      case "Key":      return "🗝";
+      case "Barrier":  return "▪";
+      case "Button":   return "⬛";
+      case "Hazard":   return "▲";
+      case "ExitDoor": return "🚪";
+      default:         return "";
     }
   };
 
@@ -381,60 +360,24 @@ function AiGenerator() {
 
                 <div style={styles.legend}>
                   {[
-                    { label: "Key", color: "#EF9F27" },
-                    { label: "Barrier", color: "#7F77DD" },
-                    { label: "Button", color: "#888780" },
-                    { label: "Hazard", color: "#E24B4A" },
-                    { label: "Exit door", color: "#1D9E75" },
-                    { label: "White (exit)", color: "#E8E8E8" },
+                    { label: "Key",         color: OBJECT_COLORS.Key },
+                    { label: "Barrier",     color: OBJECT_COLORS.Barrier },
+                    { label: "Button",      color: OBJECT_COLORS.Button },
+                    { label: "Hazard",      color: OBJECT_COLORS.Hazard },
+                    { label: "Exit door",   color: OBJECT_COLORS.ExitDoor },
+                    { label: "White (exit)",color: BARRIER_COLORS.White, border: "1px solid var(--border-strong)" },
                   ].map((item) => (
                     <div key={item.label} style={styles.legendItem}>
-                      <div
-                        style={{ ...styles.legendDot, background: item.color }}
-                      />
+                      <div style={{ ...styles.legendDot, background: item.color, border: item.border }} />
                       <span>{item.label}</span>
                     </div>
                   ))}
-                  <div style={styles.legendItem}>
-                    <div
-                      style={{ ...styles.legendDot, background: "#E24B4A" }}
-                    />
-                    <span style={{ color: "#666" }}>Red</span>
-                  </div>
-                  <div style={styles.legendItem}>
-                    <div
-                      style={{ ...styles.legendDot, background: "#378ADD" }}
-                    />
-                    <span style={{ color: "#666" }}>Blue</span>
-                  </div>
-                  <div style={styles.legendItem}>
-                    <div
-                      style={{ ...styles.legendDot, background: "#639922" }}
-                    />
-                    <span style={{ color: "#666" }}>Green</span>
-                  </div>
-                  <div style={styles.legendItem}>
-                    <div
-                      style={{ ...styles.legendDot, background: "#EF9F27" }}
-                    />
-                    <span style={{ color: "#666" }}>Yellow</span>
-                  </div>
-                  <div style={styles.legendItem}>
-                    <div
-                      style={{ ...styles.legendDot, background: "#7F77DD" }}
-                    />
-                    <span style={{ color: "#666" }}>Purple</span>
-                  </div>
-                  <div style={styles.legendItem}>
-                    <div
-                      style={{
-                        ...styles.legendDot,
-                        background: "#E8E8E8",
-                        border: "1px solid #ccc",
-                      }}
-                    />
-                    <span style={{ color: "#666" }}>White</span>
-                  </div>
+                  {Object.entries(BARRIER_COLORS).filter(([k]) => k !== 'White').map(([name, color]) => (
+                    <div key={name} style={styles.legendItem}>
+                      <div style={{ ...styles.legendDot, background: color }} />
+                      <span style={{ color: "var(--text-dim)" }}>{name}</span>
+                    </div>
+                  ))}
                 </div>
 
                 <div style={styles.reasoning}>
@@ -451,7 +394,7 @@ function AiGenerator() {
                           style={{
                             ...styles.objectDot,
                             background: obj.color
-                              ? COLORS[obj.color]
+                              ? BARRIER_COLORS[obj.color]
                               : OBJECT_COLORS[obj.objectType],
                           }}
                         />
@@ -474,7 +417,7 @@ function AiGenerator() {
 const styles = {
   page: { padding: "2rem 2.5rem" },
   title: { fontSize: "22px", fontWeight: "600", marginBottom: "4px" },
-  subtitle: { fontSize: "14px", color: "#666", marginBottom: "1.5rem" },
+  subtitle: { fontSize: "14px", color: "var(--text-dim)", marginBottom: "1.5rem" },
   layout: {
     display: "grid",
     gridTemplateColumns: "280px 1fr",
@@ -482,8 +425,8 @@ const styles = {
     alignItems: "start",
   },
   formCard: {
-    background: "#fff",
-    border: "1px solid #e0e0e0",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     padding: "1.25rem",
     display: "flex",
@@ -493,18 +436,18 @@ const styles = {
   sectionLabel: {
     fontSize: "12px",
     fontWeight: "600",
-    color: "#444",
+    color: "var(--text-secondary)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
   },
   field: { display: "flex", flexDirection: "column", gap: "4px" },
-  label: { fontSize: "12px", fontWeight: "500", color: "#555" },
+  label: { fontSize: "12px", fontWeight: "500", color: "var(--text-muted)" },
   input: {
     padding: "7px 10px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "13px",
-    background: "#fff",
+    background: "var(--surface)",
   },
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" },
   checkboxRow: { display: "flex", alignItems: "center" },
@@ -517,8 +460,8 @@ const styles = {
   },
   generateBtn: {
     padding: "10px",
-    background: "#534AB7",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "var(--surface)",
     border: "none",
     borderRadius: "8px",
     fontSize: "13px",
@@ -527,8 +470,8 @@ const styles = {
     marginTop: "4px",
   },
   previewPanel: {
-    background: "#fff",
-    border: "1px solid #e0e0e0",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     padding: "1.25rem",
     minHeight: "400px",
@@ -542,22 +485,22 @@ const styles = {
     textAlign: "center",
   },
   emptyTitle: { fontSize: "15px", fontWeight: "500", marginBottom: "8px" },
-  emptyText: { fontSize: "13px", color: "#888", maxWidth: "280px" },
+  emptyText: { fontSize: "13px", color: "var(--text-subtle)", maxWidth: "280px" },
   error: {
-    color: "#c0392b",
+    color: "var(--color-danger)",
     fontSize: "13px",
     padding: "10px",
-    background: "#fff8f8",
-    border: "1px solid #f5c6cb",
+    background: "var(--color-danger-bg-subtle)",
+    border: "1px solid var(--color-danger-border)",
     borderRadius: "8px",
     marginBottom: "12px",
   },
   success: {
-    color: "#3B6D11",
+    color: "var(--color-success-text)",
     fontSize: "13px",
     padding: "10px",
-    background: "#EAF3DE",
-    border: "1px solid #C0DD97",
+    background: "var(--color-success-bg)",
+    border: "1px solid var(--color-success-bg)",
     borderRadius: "8px",
     marginBottom: "12px",
   },
@@ -568,20 +511,20 @@ const styles = {
     marginBottom: "1rem",
   },
   previewTitle: { fontSize: "16px", fontWeight: "600", marginBottom: "4px" },
-  previewMeta: { fontSize: "12px", color: "#888" },
+  previewMeta: { fontSize: "12px", color: "var(--text-subtle)" },
   previewActions: { display: "flex", gap: "8px" },
   regenBtn: {
     padding: "6px 14px",
-    background: "#fff",
-    border: "1px solid #ddd",
+    background: "var(--surface)",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "12px",
     cursor: "pointer",
   },
   saveBtn: {
     padding: "6px 14px",
-    background: "#185FA5",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "var(--surface)",
     border: "none",
     borderRadius: "8px",
     fontSize: "12px",
@@ -592,17 +535,17 @@ const styles = {
     display: "inline-block",
     marginTop: "5px",
     padding: "2px 8px",
-    background: "#EEF0FB",
-    color: "#534AB7",
-    border: "1px solid #C9C5F0",
+    background: "var(--color-primary-bg)",
+    color: "var(--color-primary)",
+    border: "1px solid var(--color-primary-border)",
     borderRadius: "99px",
     fontSize: "11px",
     fontWeight: "600",
     letterSpacing: "0.3px",
   },
   warnings: {
-    background: "#FFFBEA",
-    border: "1px solid #F0D060",
+    background: "var(--color-warning-bg)",
+    border: "1px solid var(--color-warning-border)",
     borderRadius: "8px",
     padding: "10px 12px",
     marginBottom: "12px",
@@ -610,14 +553,14 @@ const styles = {
   warningsLabel: {
     fontSize: "11px",
     fontWeight: "600",
-    color: "#7A6010",
+    color: "var(--color-warning-text)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
     marginBottom: "6px",
   },
   warningItem: {
     fontSize: "12px",
-    color: "#6B4F00",
+    color: "var(--color-warning-text)",
     margin: "3px 0 0",
     lineHeight: "1.5",
   },
@@ -628,7 +571,7 @@ const styles = {
     gap: "12px",
     marginBottom: "1rem",
     fontSize: "12px",
-    color: "#555",
+    color: "var(--text-muted)",
   },
   legendItem: { display: "flex", alignItems: "center", gap: "5px" },
   legendDot: {
@@ -638,7 +581,7 @@ const styles = {
     flexShrink: 0,
   },
   reasoning: {
-    background: "#f8f8f8",
+    background: "var(--surface-subtle)",
     borderRadius: "8px",
     padding: "12px",
     marginBottom: "1rem",
@@ -646,13 +589,13 @@ const styles = {
   reasoningLabel: {
     fontSize: "11px",
     fontWeight: "600",
-    color: "#666",
+    color: "var(--text-dim)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
     marginBottom: "6px",
   },
-  reasoningText: { fontSize: "13px", color: "#444", lineHeight: "1.6" },
-  objectList: { background: "#f8f8f8", borderRadius: "8px", padding: "12px" },
+  reasoningText: { fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.6" },
+  objectList: { background: "var(--surface-subtle)", borderRadius: "8px", padding: "12px" },
   objectGrid: {
     display: "flex",
     flexWrap: "wrap",
@@ -662,8 +605,8 @@ const styles = {
   objectTag: {
     fontSize: "11px",
     padding: "3px 8px",
-    background: "#fff",
-    border: "1px solid #e0e0e0",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "99px",
     display: "flex",
     alignItems: "center",

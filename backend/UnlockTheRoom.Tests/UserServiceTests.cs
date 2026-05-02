@@ -18,7 +18,8 @@ public class UserServiceTests
         {
             { "Jwt:Key", "TestSuperSecretKeyThatIsAtLeast32CharactersLong!" },
             { "Jwt:Issuer", "UnlockTheRoom" },
-            { "Jwt:Audience", "UnlockTheRoom" }
+            { "Jwt:Audience", "UnlockTheRoom" },
+            { "Features:DemoEmail", "demo@greysquiid.com" }
         };
         _configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(config)

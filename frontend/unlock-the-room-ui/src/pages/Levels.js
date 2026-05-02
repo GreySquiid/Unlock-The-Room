@@ -248,7 +248,7 @@ function Levels() {
                   <input
                     style={{
                       ...styles.input,
-                      ...(formErrors.name ? { borderColor: "#c0392b" } : {}),
+                      ...(formErrors.name ? { borderColor: "var(--color-danger)" } : {}),
                     }}
                     value={form.name}
                     onChange={(e) => {
@@ -259,13 +259,7 @@ function Levels() {
                     required
                   />
                   {formErrors.name && (
-                    <p
-                      style={{
-                        color: "#c0392b",
-                        fontSize: "12px",
-                        marginTop: "4px",
-                      }}
-                    >
+                    <p style={{ color: "var(--color-danger)", fontSize: "12px", marginTop: "4px" }}>
                       {formErrors.name}
                     </p>
                   )}
@@ -289,7 +283,7 @@ function Levels() {
                   <input
                     style={{
                       ...styles.input,
-                      ...(formErrors.rows ? { borderColor: "#c0392b" } : {}),
+                      ...(formErrors.rows ? { borderColor: "var(--color-danger)" } : {}),
                     }}
                     type="number"
                     min="5"
@@ -303,13 +297,7 @@ function Levels() {
                     required
                   />
                   {formErrors.rows && (
-                    <p
-                      style={{
-                        color: "#c0392b",
-                        fontSize: "12px",
-                        marginTop: "4px",
-                      }}
-                    >
+                    <p style={{ color: "var(--color-danger)", fontSize: "12px", marginTop: "4px" }}>
                       {formErrors.rows}
                     </p>
                   )}
@@ -319,7 +307,7 @@ function Levels() {
                   <input
                     style={{
                       ...styles.input,
-                      ...(formErrors.columns ? { borderColor: "#c0392b" } : {}),
+                      ...(formErrors.columns ? { borderColor: "var(--color-danger)" } : {}),
                     }}
                     type="number"
                     min="5"
@@ -333,13 +321,7 @@ function Levels() {
                     required
                   />
                   {formErrors.columns && (
-                    <p
-                      style={{
-                        color: "#c0392b",
-                        fontSize: "12px",
-                        marginTop: "4px",
-                      }}
-                    >
+                    <p style={{ color: "var(--color-danger)", fontSize: "12px", marginTop: "4px" }}>
                       {formErrors.columns}
                     </p>
                   )}
@@ -450,7 +432,7 @@ function Levels() {
                 </td>
                 <td style={styles.td}>
                   <button
-                    style={{ ...styles.actionBtn, color: "#534AB7" }}
+                    style={{ ...styles.actionBtn, color: "var(--color-primary)" }}
                     onClick={() => setEditingLayout(level)}
                   >
                     Edit
@@ -458,7 +440,7 @@ function Levels() {
                   <button
                     style={{
                       ...styles.actionBtn,
-                      color: level.isPublished ? "#b7660a" : "#2e7d32",
+                      color: level.isPublished ? "var(--color-warning-text)" : "var(--color-success-text)",
                     }}
                     onClick={() => togglePublish(level)}
                   >
@@ -467,14 +449,14 @@ function Levels() {
                   <button
                     style={{
                       ...styles.actionBtn,
-                      color: level.isValidated ? "#854F0B" : "#185FA5",
+                      color: level.isValidated ? "var(--color-warning-text)" : "var(--color-primary)",
                     }}
                     onClick={() => toggleValidate(level)}
                   >
                     {level.isValidated ? "Invalidate" : "Validate"}
                   </button>
                   <button
-                    style={{ ...styles.actionBtn, color: "#c0392b" }}
+                    style={{ ...styles.actionBtn, color: "var(--color-danger)" }}
                     onClick={() => handleDelete(level.id)}
                   >
                     Delete
@@ -503,20 +485,20 @@ const styles = {
     flex: 1,
     maxWidth: "320px",
     padding: "8px 12px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "14px",
   },
   select: {
     padding: "8px 12px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "14px",
-    background: "#fff",
+    background: "var(--surface)",
   },
   formCard: {
-    background: "#fff",
-    border: "1px solid #e0e0e0",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     padding: "1.5rem",
     marginBottom: "1.5rem",
@@ -532,18 +514,18 @@ const styles = {
   label: { fontSize: "13px", fontWeight: "500" },
   input: {
     padding: "8px 12px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "14px",
   },
   formActions: { display: "flex", gap: "10px" },
-  error: { color: "#c0392b", fontSize: "13px", marginBottom: "10px" },
+  error: { color: "var(--color-danger)", fontSize: "13px", marginBottom: "10px" },
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    background: "#fff",
+    background: "var(--surface)",
     borderRadius: "10px",
-    border: "1px solid #e0e0e0",
+    border: "1px solid var(--border)",
     overflow: "hidden",
   },
   th: {
@@ -551,32 +533,32 @@ const styles = {
     padding: "10px 16px",
     fontSize: "12px",
     fontWeight: "500",
-    color: "#666",
-    borderBottom: "1px solid #e0e0e0",
-    background: "#fafafa",
+    color: "var(--text-dim)",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface-raised)",
   },
   td: {
     padding: "10px 16px",
     fontSize: "13px",
-    borderBottom: "1px solid #f0f0f0",
+    borderBottom: "1px solid var(--bg-hover)",
   },
   empty: {
     padding: "2rem",
     textAlign: "center",
-    color: "#999",
+    color: "var(--text-subtle)",
     fontSize: "14px",
   },
   badgeGreen: {
-    background: "#EAF3DE",
-    color: "#3B6D11",
+    background: "var(--color-success-bg)",
+    color: "var(--color-success-text)",
     padding: "2px 10px",
     borderRadius: "99px",
     fontSize: "11px",
     fontWeight: "500",
   },
   badgeGray: {
-    background: "#f0f0f0",
-    color: "#666",
+    background: "var(--bg-hover)",
+    color: "var(--text-dim)",
     padding: "2px 10px",
     borderRadius: "99px",
     fontSize: "11px",
@@ -586,15 +568,15 @@ const styles = {
     fontSize: "12px",
     padding: "3px 10px",
     borderRadius: "6px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     background: "transparent",
     cursor: "pointer",
     marginRight: "4px",
   },
   primaryBtn: {
     padding: "8px 16px",
-    background: "#185FA5",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "var(--surface)",
     border: "none",
     borderRadius: "8px",
     fontSize: "13px",
@@ -603,9 +585,9 @@ const styles = {
   },
   secondaryBtn: {
     padding: "8px 16px",
-    background: "#fff",
-    color: "#185FA5",
-    border: "1px solid #185FA5",
+    background: "var(--surface)",
+    color: "var(--color-primary)",
+    border: "1px solid var(--color-primary)",
     borderRadius: "8px",
     fontSize: "13px",
     fontWeight: "500",
@@ -613,9 +595,9 @@ const styles = {
   },
   cancelBtn: {
     padding: "8px 16px",
-    background: "#fff",
-    color: "#333",
-    border: "1px solid #ddd",
+    background: "var(--surface)",
+    color: "var(--text-strong)",
+    border: "1px solid var(--border-divider)",
     borderRadius: "8px",
     fontSize: "13px",
     cursor: "pointer",
@@ -631,21 +613,21 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "12px 16px",
-    background: "#f8fafc",
-    border: "1px solid #e0e0e0",
-    borderLeft: "4px solid #185FA5",
+    background: "var(--surface-subtle)",
+    border: "1px solid var(--border)",
+    borderLeft: "4px solid var(--color-primary)",
     borderRadius: "8px",
     cursor: "grab",
     userSelect: "none",
   },
   reorderRowOver: {
-    background: "#e8f0fb",
-    borderLeft: "4px solid #0d3d70",
-    borderColor: "#185FA5",
+    background: "var(--color-primary-bg)",
+    borderLeft: "4px solid var(--color-primary-hover)",
+    borderColor: "var(--color-primary)",
   },
   dragHandle: {
     fontSize: "18px",
-    color: "#aaa",
+    color: "var(--text-placeholder)",
     lineHeight: 1,
   },
   reorderName: {
@@ -655,24 +637,24 @@ const styles = {
   },
   reorderGrid: {
     fontSize: "13px",
-    color: "#666",
+    color: "var(--text-dim)",
   },
   reorderSuccess: {
     fontSize: "13px",
-    color: "#2e7d32",
+    color: "var(--color-success-text)",
     fontWeight: "500",
   },
   badgeRed: {
-    background: "#fde8e8",
-    color: "#9b1c1c",
+    background: "var(--color-danger-bg)",
+    color: "var(--color-danger-text)",
     padding: "2px 10px",
     borderRadius: "99px",
     fontSize: "11px",
     fontWeight: "500",
   },
   badgeAmber: {
-    background: "#fef3c7",
-    color: "#92400e",
+    background: "var(--color-warning-bg)",
+    color: "var(--color-warning-text)",
     padding: "2px 10px",
     borderRadius: "99px",
     fontSize: "11px",

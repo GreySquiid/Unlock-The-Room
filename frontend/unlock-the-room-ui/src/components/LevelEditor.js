@@ -1,44 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import api from "../services/api";
+import { BARRIER_COLORS, OBJECT_COLORS, WALL_COLORS } from "../gameColors";
 
 const CELL = 32;
 const MAX_HISTORY = 50;
-
-const COLORS = {
-  Red: "#E24B4A",
-  Blue: "#378ADD",
-  Green: "#639922",
-  Yellow: "#EF9F27",
-  Purple: "#7F77DD",
-  White: "#E8E8E8",
-};
-
-const OBJECT_COLORS = {
-  Platform: "#4a4a6a",
-  ExitDoor: "#1D9E75",
-  Hazard: "#888",
-  KillBrick: "#C0392B",
-  SpawnPoint: "#378ADD",
-};
 
 const OBJECT_TYPES = ["Platform", "Key", "Barrier", "Hazard", "KillBrick", "ExitDoor", "SpawnPoint"];
 const COLOR_OPTIONS = ["Red", "Blue", "Green", "Yellow", "Purple", "White"];
 
 function cellColor(obj) {
-  if (obj.objectType === "Key") return COLORS[obj.color] || "#EF9F27";
-  if (obj.objectType === "Barrier") return COLORS[obj.color] || "#888";
-  return OBJECT_COLORS[obj.objectType] || "#555";
+  if (obj.objectType === "Key") return BARRIER_COLORS[obj.color] || BARRIER_COLORS.Yellow;
+  if (obj.objectType === "Barrier") return BARRIER_COLORS[obj.color] || OBJECT_COLORS.Barrier;
+  return OBJECT_COLORS[obj.objectType] || "var(--text-muted)";
 }
 
 function cellLabel(obj) {
   const labels = {
-    Platform: "P",
-    Key: "K",
-    Barrier: "B",
-    Hazard: "H",
-    KillBrick: "X",
-    ExitDoor: "E",
-    SpawnPoint: "S",
+    Platform: "P", Key: "K", Barrier: "B",
+    Hazard: "H",  KillBrick: "X", ExitDoor: "E", SpawnPoint: "S",
   };
   return labels[obj.objectType] || "?";
 }
@@ -62,7 +41,6 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
-  // Metadata editing
   const [metaOpen, setMetaOpen] = useState(false);
   const [metaForm, setMetaForm] = useState({
     name: initialLevel.name,
@@ -73,7 +51,6 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
   const [metaSaving, setMetaSaving] = useState(false);
   const [metaMsg, setMetaMsg] = useState("");
 
-  // Sidebar tool state
   const [tool, setTool] = useState("Platform");
   const [color, setColor] = useState("Red");
   const [hazardType] = useState("Spike");
@@ -81,13 +58,11 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
   const [width, setWidth] = useState(1);
   const [height, setHeight] = useState(1);
 
-  // Undo history
   const historyRef = useRef([]);
   const [canUndo, setCanUndo] = useState(false);
 
-  // Drag state
-  const dragRef = useRef(null); // { obj, ghostCol, ghostRow }
-  const [ghostCell, setGhostCell] = useState(null); // { col, row } during drag
+  const dragRef = useRef(null);
+  const [ghostCell, setGhostCell] = useState(null);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -113,7 +88,6 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
     fetchDetail();
   }, [level.id]);
 
-  // Keyboard shortcut for undo
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ") {
@@ -191,7 +165,6 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
     }
 
     if (existing && e.button === 0) {
-      // Start drag
       dragRef.current = { obj: existing, ghostCol: col, ghostRow: row };
       setGhostCell({ col, row });
     } else if (e.button === 0) {
@@ -201,14 +174,12 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
 
   const handleMouseEnter = (e, col, row) => {
     if (dragRef.current) {
-      // Update ghost position
       setGhostCell({ col, row });
       dragRef.current.ghostCol = col;
       dragRef.current.ghostRow = row;
       return;
     }
     if (e.buttons === 1) {
-      // Paint mode (dragging on empty cells)
       const key = `${col},${row}`;
       if (!occupancy[key]) {
         handleCellClick(col, row, false, objects);
@@ -222,12 +193,10 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
     dragRef.current = null;
     setGhostCell(null);
 
-    // Don't do anything if dropped in same spot
     if (ghostCol === obj.positionX && ghostRow === obj.positionY) return;
 
     pushHistory(objects);
     setObjects((prev) => {
-      // Remove original + anything at drop target
       const overlapping = new Set();
       for (let dy = 0; dy < obj.height; dy++) {
         for (let dx = 0; dx < obj.width; dx++) {
@@ -249,22 +218,18 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
       const payload = objects.map((o) => ({
         id: o.id,
         objectType:
-          o.objectType === "Platform"
-            ? "Platform"
-            : o.objectType === "KillBrick"
-            ? "KillBrick"
-            : o.objectType,
+          o.objectType === "Platform" ? "Platform"
+          : o.objectType === "KillBrick" ? "KillBrick"
+          : o.objectType,
         positionX: o.positionX,
         positionY: o.positionY,
         width: o.width,
         height: o.height,
         color: o.color,
         hazardType:
-          o.objectType === "Platform"
-            ? "Platform"
-            : o.objectType === "KillBrick"
-            ? "KillBrick"
-            : o.hazardType,
+          o.objectType === "Platform" ? "Platform"
+          : o.objectType === "KillBrick" ? "KillBrick"
+          : o.hazardType,
         rotation: o.rotation || 0,
       }));
       await api.put(`/Levels/${level.id}/objects`, payload);
@@ -304,16 +269,10 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
   const gridW = cols * CELL;
   const gridH = rows * CELL;
 
-  // Boundary wall cells: col 0, col cols-1, row rows-1
   const isBoundaryWall = (col, row) =>
     col === 0 || col === cols - 1 || row === rows - 1;
 
-  // Object blending: check if a neighbor in a direction has the same type
   const hasSameNeighbor = (obj, direction) => {
-    const dx = direction === "left" ? -1 : direction === "right" ? 1 : 0;
-    const dy = direction === "top" ? -1 : direction === "bottom" ? 1 : 0;
-
-    // Check each cell on the shared edge
     if (direction === "left" || direction === "right") {
       for (let r = 0; r < obj.height; r++) {
         const neighborKey = `${obj.positionX + (direction === "right" ? obj.width : -1)},${obj.positionY + r}`;
@@ -356,7 +315,9 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
               <span
                 style={{
                   ...styles.saveMsg,
-                  color: (saveMsg === "Saved!" || metaMsg === "Saved!") ? "#2e7d32" : "#c0392b",
+                  color: (saveMsg === "Saved!" || metaMsg === "Saved!")
+                    ? "var(--color-success-text)"
+                    : "var(--color-danger)",
                 }}
               >
                 {saveMsg || metaMsg}
@@ -458,8 +419,8 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                       ...styles.typeDot,
                       background:
                         t === "Key" || t === "Barrier"
-                          ? COLORS[color]
-                          : OBJECT_COLORS[t] || "#555",
+                          ? BARRIER_COLORS[color]
+                          : OBJECT_COLORS[t] || "var(--text-muted)",
                       opacity: t === "Barrier" ? 0.7 : 1,
                     }}
                   />
@@ -478,13 +439,13 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                       title={c}
                       style={{
                         ...styles.colorSwatch,
-                        background: COLORS[c],
+                        background: BARRIER_COLORS[c],
                         border:
                           color === c
-                            ? "2px solid #185FA5"
+                            ? "2px solid var(--color-primary)"
                             : "2px solid transparent",
                         outline:
-                          c === "White" ? "1px solid #ccc" : "none",
+                          c === "White" ? "1px solid var(--border-strong)" : "none",
                       }}
                       onClick={() => setColor(c)}
                     />
@@ -565,13 +526,13 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
             <p style={{ ...styles.sidebarSection, marginTop: "20px" }}>Legend</p>
             <div style={styles.legend}>
               {[
-                { label: "Platform", color: "#4a4a6a" },
-                { label: "Key", color: "#EF9F27" },
-                { label: "Barrier", color: "#378ADD", opacity: 0.7 },
-                { label: "Spike", color: "#888" },
-                { label: "Kill Brick", color: "#C0392B" },
-                { label: "Exit Door", color: "#1D9E75" },
-                { label: "Spawn", color: "#378ADD" },
+                { label: "Platform",  color: OBJECT_COLORS.Platform },
+                { label: "Key",       color: BARRIER_COLORS.Yellow },
+                { label: "Barrier",   color: BARRIER_COLORS.Blue, opacity: 0.7 },
+                { label: "Spike",     color: OBJECT_COLORS.Hazard },
+                { label: "Kill Brick",color: OBJECT_COLORS.KillBrick },
+                { label: "Exit Door", color: OBJECT_COLORS.ExitDoor },
+                { label: "Spawn",     color: OBJECT_COLORS.SpawnPoint },
               ].map((item) => (
                 <div key={item.label} style={styles.legendRow}>
                   <span
@@ -586,7 +547,7 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
               ))}
             </div>
 
-            <div style={{ fontSize: '11px', color: '#999', lineHeight: '1.8', marginTop: '8px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-subtle)', lineHeight: '1.8', marginTop: '8px' }}>
               <div>Left-click: place</div>
               <div>Right-click: delete</div>
               <div>Drag existing object to move</div>
@@ -619,9 +580,9 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                           top: row * CELL,
                           width: CELL,
                           height: CELL,
-                          background: "#2e2e48",
-                          borderRight: "1px solid #3a3a58",
-                          borderBottom: "1px solid #3a3a58",
+                          background: WALL_COLORS.bg,
+                          borderRight: `1px solid ${WALL_COLORS.border}`,
+                          borderBottom: `1px solid ${WALL_COLORS.border}`,
                           boxSizing: "border-box",
                           pointerEvents: "none",
                           zIndex: 0,
@@ -641,22 +602,16 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                   {Array.from({ length: cols + 1 }, (_, x) => (
                     <line
                       key={`v${x}`}
-                      x1={x * CELL}
-                      y1={0}
-                      x2={x * CELL}
-                      y2={gridH}
-                      stroke="#e0e0e0"
+                      x1={x * CELL} y1={0} x2={x * CELL} y2={gridH}
+                      stroke="var(--border)"
                       strokeWidth="0.5"
                     />
                   ))}
                   {Array.from({ length: rows + 1 }, (_, y) => (
                     <line
                       key={`h${y}`}
-                      x1={0}
-                      y1={y * CELL}
-                      x2={gridW}
-                      y2={y * CELL}
-                      stroke="#e0e0e0"
+                      x1={0} y1={y * CELL} x2={gridW} y2={y * CELL}
+                      stroke="var(--border)"
                       strokeWidth="0.5"
                     />
                   ))}
@@ -693,10 +648,9 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                   const isKillBrick = obj.objectType === "KillBrick";
                   const isDragging = dragRef.current?.obj === obj;
 
-                  // Blending: suppress borders where same-type neighbor exists
-                  const blendLeft = hasSameNeighbor(obj, "left");
-                  const blendRight = hasSameNeighbor(obj, "right");
-                  const blendTop = hasSameNeighbor(obj, "top");
+                  const blendLeft   = hasSameNeighbor(obj, "left");
+                  const blendRight  = hasSameNeighbor(obj, "right");
+                  const blendTop    = hasSameNeighbor(obj, "top");
                   const blendBottom = hasSameNeighbor(obj, "bottom");
 
                   const borderStyle = (side) => {
@@ -704,19 +658,18 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                     return blended ? "none" : "1px solid rgba(0,0,0,0.2)";
                   };
 
-                  // KillBrick position depends on rotation: bottom/top half or left/right half
                   let objLeft = obj.positionX * CELL;
                   let objTop, objW, objH;
                   if (isKillBrick) {
                     const rot = obj.rotation || 0;
-                    if (rot === 180) {       // top half
+                    if (rot === 180) {
                       objTop = obj.positionY * CELL; objW = w; objH = CELL / 2;
-                    } else if (rot === 90) { // right half
+                    } else if (rot === 90) {
                       objLeft = obj.positionX * CELL + CELL / 2;
                       objTop = obj.positionY * CELL; objW = CELL / 2; objH = h;
-                    } else if (rot === 270) { // left half
+                    } else if (rot === 270) {
                       objTop = obj.positionY * CELL; objW = CELL / 2; objH = h;
-                    } else {                 // 0° = bottom half
+                    } else {
                       objTop = obj.positionY * CELL + CELL / 2; objW = w; objH = CELL / 2;
                     }
                   } else {
@@ -757,13 +710,13 @@ export default function LevelEditor({ level: initialLevel, onClose, onPlayTest }
                           <g transform={`rotate(${obj.rotation || 0}, ${CELL / 2}, ${CELL / 2})`}>
                             <polygon
                               points={`2,${CELL} ${CELL / 2},2 ${CELL - 2},${CELL}`}
-                              fill="#aaa"
+                              fill="var(--text-placeholder)"
                             />
                           </g>
                         </svg>
                       )}
                       {isSpike && (obj.rotation || 0) !== 0 && (
-                        <span style={{ position: "absolute", bottom: 1, right: 2, fontSize: "7px", color: "#aaa", lineHeight: 1 }}>
+                        <span style={{ position: "absolute", bottom: 1, right: 2, fontSize: "7px", color: "var(--text-placeholder)", lineHeight: 1 }}>
                           {obj.rotation}°
                         </span>
                       )}
@@ -810,7 +763,7 @@ const styles = {
     justifyContent: "center",
   },
   modal: {
-    background: "#fff",
+    background: "var(--surface)",
     borderRadius: "12px",
     width: "95vw",
     height: "95vh",
@@ -824,17 +777,17 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "12px 20px",
-    borderBottom: "1px solid #e8e8e8",
-    background: "#fafafa",
+    borderBottom: "1px solid var(--border-light)",
+    background: "var(--surface-raised)",
     flexShrink: 0,
   },
   headerLeft: { display: "flex", alignItems: "center", gap: "12px" },
   headerTitle: { fontWeight: "700", fontSize: "15px" },
-  headerSub: { fontSize: "13px", color: "#555" },
+  headerSub: { fontSize: "13px", color: "var(--text-muted)" },
   headerDim: {
     fontSize: "12px",
-    color: "#aaa",
-    background: "#f0f0f0",
+    color: "var(--text-placeholder)",
+    background: "var(--bg-hover)",
     padding: "2px 8px",
     borderRadius: "99px",
   },
@@ -842,8 +795,8 @@ const styles = {
   saveMsg: { fontSize: "13px", fontWeight: "500" },
   btnSave: {
     padding: "7px 18px",
-    background: "#185FA5",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "var(--surface)",
     border: "none",
     borderRadius: "7px",
     fontSize: "13px",
@@ -853,16 +806,16 @@ const styles = {
   btnMeta: {
     padding: "5px 12px",
     background: "transparent",
-    color: "#555",
-    border: "1px solid #ddd",
+    color: "var(--text-muted)",
+    border: "1px solid var(--border-divider)",
     borderRadius: "7px",
     fontSize: "12px",
     cursor: "pointer",
   },
   btnPlayTest: {
     padding: "7px 18px",
-    background: "#534AB7",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "var(--surface)",
     border: "none",
     borderRadius: "7px",
     fontSize: "13px",
@@ -872,15 +825,15 @@ const styles = {
   btnClose: {
     padding: "7px 14px",
     background: "transparent",
-    color: "#555",
-    border: "1px solid #ddd",
+    color: "var(--text-muted)",
+    border: "1px solid var(--border-divider)",
     borderRadius: "7px",
     fontSize: "13px",
     cursor: "pointer",
   },
   metaBar: {
-    borderBottom: "1px solid #e8e8e8",
-    background: "#f8f9fa",
+    borderBottom: "1px solid var(--border-light)",
+    background: "var(--surface-subtle)",
     padding: "12px 20px",
     flexShrink: 0,
   },
@@ -894,13 +847,13 @@ const styles = {
   metaLabel: {
     fontSize: "10px",
     fontWeight: "700",
-    color: "#aaa",
+    color: "var(--text-placeholder)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
   },
   metaInput: {
     padding: "6px 10px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "6px",
     fontSize: "13px",
     minWidth: "120px",
@@ -913,15 +866,15 @@ const styles = {
   sidebar: {
     width: "200px",
     flexShrink: 0,
-    borderRight: "1px solid #e8e8e8",
+    borderRight: "1px solid var(--border-light)",
     padding: "16px 14px",
     overflowY: "auto",
-    background: "#fafafa",
+    background: "var(--surface-raised)",
   },
   sidebarSection: {
     fontSize: "10px",
     fontWeight: "700",
-    color: "#aaa",
+    color: "var(--text-placeholder)",
     textTransform: "uppercase",
     letterSpacing: "0.6px",
     marginBottom: "7px",
@@ -938,12 +891,12 @@ const styles = {
     fontSize: "13px",
     cursor: "pointer",
     textAlign: "left",
-    color: "#333",
+    color: "var(--text-strong)",
   },
   typeBtnActive: {
-    background: "#EEF4FF",
-    border: "1px solid #D0DEFF",
-    color: "#185FA5",
+    background: "var(--color-primary-bg)",
+    border: "1px solid var(--color-primary-border)",
+    color: "var(--color-primary)",
     fontWeight: "600",
   },
   typeDot: {
@@ -964,15 +917,15 @@ const styles = {
     borderRadius: "5px",
     cursor: "pointer",
   },
-  colorLabel: { fontSize: "11px", color: "#888", marginTop: "2px" },
-  staticValue: { fontSize: "13px", color: "#555", padding: "4px 0" },
+  colorLabel: { fontSize: "11px", color: "var(--text-subtle)", marginTop: "2px" },
+  staticValue: { fontSize: "13px", color: "var(--text-muted)", padding: "4px 0" },
   sizeRow: { display: "flex", gap: "8px" },
   sizeField: { display: "flex", alignItems: "center", gap: "5px" },
-  sizeLabel: { fontSize: "12px", color: "#666", fontWeight: "600" },
+  sizeLabel: { fontSize: "12px", color: "var(--text-dim)", fontWeight: "600" },
   sizeInput: {
     width: "48px",
     padding: "4px 6px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-divider)",
     borderRadius: "5px",
     fontSize: "13px",
     textAlign: "center",
@@ -985,18 +938,12 @@ const styles = {
     borderRadius: "2px",
     flexShrink: 0,
   },
-  legendLabel: { fontSize: "12px", color: "#555" },
-  hint: {
-    fontSize: "10px",
-    color: "#bbb",
-    marginTop: "16px",
-    lineHeight: 1.5,
-  },
+  legendLabel: { fontSize: "12px", color: "var(--text-muted)" },
   gridWrapper: {
     flex: 1,
     overflow: "auto",
     padding: "20px",
-    background: "#f5f5f5",
+    background: "var(--bg)",
     display: "flex",
     alignItems: "flex-start",
     justifyContent: "flex-start",
@@ -1008,7 +955,7 @@ const styles = {
     pointerEvents: "none",
     zIndex: 0,
   },
-  loadingText: { color: "#999", fontSize: "14px", margin: "auto" },
+  loadingText: { color: "var(--text-subtle)", fontSize: "14px", margin: "auto" },
   cellLabel: {
     fontSize: "9px",
     fontWeight: "700",

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
+import { GAME_UI } from "../../gameColors";
 
 function SavedLevels({ player, onPlay, onBack }) {
   const [saved, setSaved] = useState([]);
@@ -111,8 +112,8 @@ const styles = {
     padding: "2rem",
   },
   card: {
-    background: "#2a2a3e",
-    border: "1px solid #444",
+    background: GAME_UI.cardBg,
+    border: `1px solid ${GAME_UI.cardBorder}`,
     borderRadius: "16px",
     padding: "2rem",
     width: "480px",
@@ -125,15 +126,15 @@ const styles = {
     alignItems: "center",
     marginBottom: "1.5rem",
   },
-  title: { color: "#fff", fontSize: "22px", fontWeight: "600", margin: 0 },
+  title: { color: "white", fontSize: "22px", fontWeight: "600", margin: 0 },
   locked: {
-    color: "#888",
+    color: GAME_UI.textMuted,
     textAlign: "center",
     padding: "2rem 0",
     fontSize: "16px",
   },
   message: {
-    color: "#888",
+    color: GAME_UI.textMuted,
     textAlign: "center",
     padding: "1.5rem 0",
     fontSize: "14px",
@@ -144,17 +145,17 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "12px",
-    background: "#1a1a2e",
+    background: "var(--game-bg)",
     borderRadius: "8px",
-    border: "1px solid #333",
+    border: `1px solid ${GAME_UI.subtleBorder}`,
   },
-  levelName: { color: "#fff", fontSize: "14px", fontWeight: "500", margin: 0 },
-  levelMeta: { color: "#888", fontSize: "12px", margin: "3px 0 0" },
+  levelName: { color: "white", fontSize: "14px", fontWeight: "500", margin: 0 },
+  levelMeta: { color: GAME_UI.textMuted, fontSize: "12px", margin: "3px 0 0" },
   rowActions: { display: "flex", gap: "8px" },
   playBtn: {
     padding: "6px 14px",
-    background: "#534AB7",
-    color: "#fff",
+    background: "var(--color-primary)",
+    color: "white",
     border: "none",
     borderRadius: "6px",
     fontSize: "12px",
@@ -163,8 +164,8 @@ const styles = {
   unsaveBtn: {
     padding: "6px 14px",
     background: "transparent",
-    color: "#888",
-    border: "1px solid #444",
+    color: GAME_UI.textMuted,
+    border: `1px solid ${GAME_UI.cardBorder}`,
     borderRadius: "6px",
     fontSize: "12px",
     cursor: "pointer",
@@ -172,8 +173,8 @@ const styles = {
   backBtn: {
     padding: "6px 14px",
     background: "transparent",
-    color: "#888",
-    border: "1px solid #444",
+    color: GAME_UI.textMuted,
+    border: `1px solid ${GAME_UI.cardBorder}`,
     borderRadius: "8px",
     fontSize: "13px",
     cursor: "pointer",

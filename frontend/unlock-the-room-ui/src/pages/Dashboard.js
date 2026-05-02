@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-
-const DEMO_EMAIL = 'demo@greysquiid.com';
+import { DEMO_EMAIL } from '../config';
 
 function Dashboard() {
   const [stats, setStats] = useState({ total: 0, published: 0, validated: 0 });
@@ -68,9 +67,9 @@ function Dashboard() {
         <p style={styles.subtitle}>Welcome back, {user.email}.</p>
 
         <div style={styles.statsGrid}>
-          <StatCard label="Total levels" value={stats.total} color="#185FA5" />
-          <StatCard label="Published" value={stats.published} color="#3B6D11" />
-          <StatCard label="Validated" value={stats.validated} color="#7F77DD" />
+          <StatCard label="Total levels" value={stats.total} color="var(--color-primary)" />
+          <StatCard label="Published" value={stats.published} color="var(--color-success-text)" />
+          <StatCard label="Validated" value={stats.validated} color="var(--color-primary)" />
         </div>
 
         <p style={styles.sectionLabel}>Quick actions</p>
@@ -125,43 +124,43 @@ function StatCard({ label, value, color }) {
 function ActionCard({ title, description, onClick, primary }) {
   return (
     <div style={{ ...styles.actionCard, ...(primary ? styles.actionCardPrimary : {}) }} onClick={onClick}>
-      <p style={{ ...styles.actionTitle, ...(primary ? { color: '#fff' } : {}) }}>{title}</p>
+      <p style={{ ...styles.actionTitle, ...(primary ? { color: 'var(--surface)' } : {}) }}>{title}</p>
       <p style={{ ...styles.actionDesc, ...(primary ? { color: 'rgba(255,255,255,0.7)' } : {}) }}>{description}</p>
     </div>
   );
 }
 
 const styles = {
-  page: { minHeight: '100vh', background: '#f5f5f5' },
-  topBar: { background: '#fff', borderBottom: '1px solid #e0e0e0', padding: '12px 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  page: { minHeight: '100vh', background: 'var(--bg)' },
+  topBar: { background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '12px 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   brand: { display: 'flex', flexDirection: 'column' },
-  brandName: { fontSize: '15px', fontWeight: '700', color: '#1a1a1a' },
-  brandSub: { fontSize: '11px', color: '#888' },
+  brandName: { fontSize: '15px', fontWeight: '700', color: 'var(--text)' },
+  brandSub: { fontSize: '11px', color: 'var(--text-subtle)' },
   topRight: { display: 'flex', alignItems: 'center', gap: '12px' },
-  userEmail: { fontSize: '13px', color: '#666' },
-  logoutBtn: { padding: '5px 12px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' },
+  userEmail: { fontSize: '13px', color: 'var(--text-dim)' },
+  logoutBtn: { padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-divider)', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' },
   content: { padding: '2rem 2.5rem' },
   title: { fontSize: '28px', fontWeight: '700', margin: '0 0 4px' },
-  subtitle: { fontSize: '14px', color: '#666', margin: '0 0 1.5rem' },
+  subtitle: { fontSize: '14px', color: 'var(--text-dim)', margin: '0 0 1.5rem' },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(180px, 1fr))', gap: '12px', marginBottom: '2rem' },
-  statCard: { background: '#fff', border: '1px solid #e0e0e0', borderRadius: '10px', overflow: 'hidden', display: 'flex' },
+  statCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', display: 'flex' },
   statAccent: { width: '4px', flexShrink: 0 },
   statBody: { padding: '1.25rem 1.5rem' },
-  statLabel: { fontSize: '13px', color: '#888', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  statLabel: { fontSize: '13px', color: 'var(--text-subtle)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   statValue: { fontSize: '40px', fontWeight: '700', margin: 0 },
-  sectionLabel: { fontSize: '11px', fontWeight: '600', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' },
+  sectionLabel: { fontSize: '11px', fontWeight: '600', color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' },
   actionsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' },
-  actionCard: { background: '#fff', border: '1px solid #e0e0e0', borderRadius: '10px', padding: '1.5rem', cursor: 'pointer' },
-  actionCardPrimary: { background: '#185FA5', border: '1px solid #185FA5' },
+  actionCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '1.5rem', cursor: 'pointer' },
+  actionCardPrimary: { background: 'var(--color-primary)', border: '1px solid var(--color-primary)' },
   actionTitle: { fontSize: '15px', fontWeight: '600', margin: '0 0 6px' },
-  actionDesc: { fontSize: '13px', color: '#888', margin: 0 },
+  actionDesc: { fontSize: '13px', color: 'var(--text-subtle)', margin: 0 },
   demoFooter: {
     fontSize: '11px',
-    color: '#bbb',
+    color: 'var(--text-placeholder)',
     textAlign: 'center',
     padding: '12px',
-    borderTop: '1px solid #f0f0f0',
-    background: '#fff',
+    borderTop: '1px solid var(--bg-hover)',
+    background: 'var(--surface)',
   },
 };
 
