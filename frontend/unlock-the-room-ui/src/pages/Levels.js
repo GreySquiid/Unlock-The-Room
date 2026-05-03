@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import LevelEditor from "../components/LevelEditor";
 import api from "../services/api";
+import { SquidStatic } from "../components/Squid";
 
 function Levels() {
   const [levels, setLevels] = useState([]);
@@ -395,13 +396,7 @@ function Levels() {
         {!reorderMode && levels.length === 0 && (
           <div style={styles.emptyState}>
             <div style={styles.emptySquid}>
-              <div style={{ width: 48, height: 60, overflow: "hidden", imageRendering: "pixelated" }}>
-                <img
-                  src="/assets/squid-sprite.png"
-                  alt=""
-                  style={{ width: 192, height: 60, display: "block", imageRendering: "pixelated" }}
-                />
-              </div>
+              <SquidStatic size={48} />
             </div>
             <p style={styles.emptyMsg}>No levels match your search.</p>
             <p style={styles.emptySub}>Try a different name or clear the filters.</p>

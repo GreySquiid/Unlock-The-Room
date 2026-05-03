@@ -1,70 +1,5 @@
-import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-
-const IDLE_FRAMES = [
-  [0,   0, 128, 160],
-  [128, 0, 128, 160],
-  [256, 0, 128, 160],
-  [384, 0, 128, 160],
-];
-const reducedMotion =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-function SquidStatic() {
-  return (
-    <div style={{ width: 64, height: 80, overflow: "hidden", imageRendering: "pixelated" }}>
-      <img
-        src="/assets/squid-sprite.png"
-        alt="GreySquiid mascot"
-        style={{ width: 256, height: 80, display: "block", imageRendering: "pixelated" }}
-      />
-    </div>
-  );
-}
-
-function SquidAnimated() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width  = 64;
-    canvas.height = 80;
-    const img = new Image();
-    img.src = "/assets/squid-sprite.png";
-    let frame = 0;
-    let tick  = 0;
-    let loopId;
-    const draw = (f) => {
-      ctx.clearRect(0, 0, 64, 80);
-      if (img.complete && img.naturalWidth > 0) {
-        const [sx, sy, sw, sh] = IDLE_FRAMES[f];
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 64, 80);
-      }
-    };
-    if (reducedMotion) {
-      img.onload = () => draw(0);
-      if (img.complete && img.naturalWidth > 0) draw(0);
-      return;
-    }
-    const animate = () => {
-      tick++;
-      if (tick % 8 === 0) frame = (frame + 1) % IDLE_FRAMES.length;
-      draw(frame);
-      loopId = requestAnimationFrame(animate);
-    };
-    img.onload = () => { loopId = requestAnimationFrame(animate); };
-    if (img.complete && img.naturalWidth > 0) loopId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(loopId);
-  }, []);
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ imageRendering: "pixelated", display: "block" }}
-    />
-  );
-}
+import { SquidCanvas } from "../components/Squid";
 
 function NotFound() {
   const navigate = useNavigate();
@@ -72,7 +7,7 @@ function NotFound() {
     <div style={styles.page}>
       <div style={styles.card}>
         <div style={styles.squidWrap}>
-          {reducedMotion ? <SquidStatic /> : <SquidAnimated />}
+          <SquidCanvas size={64} />
         </div>
         <h1 style={styles.code}>404</h1>
         <p style={styles.message}>This room doesn't exist.</p>

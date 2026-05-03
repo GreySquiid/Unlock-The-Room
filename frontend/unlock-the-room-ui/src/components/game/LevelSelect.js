@@ -1,88 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import api from "../../services/api";
 import { GAME_UI } from "../../gameColors";
 import ParallaxBackground from "./ParallaxBackground";
 import LevelThumbnail from "./LevelThumbnail";
-
-// Idle animation frames from the squid sprite sheet (row 0, 128×160 each)
-const IDLE_FRAMES = [
-  [0,   0, 128, 160],
-  [128, 0, 128, 160],
-  [256, 0, 128, 160],
-  [384, 0, 128, 160],
-];
-const reducedMotion =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-// Animated squid canvas — used in the loading state
-function SquidAnimated({ size = 40 }) {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width  = size;
-    canvas.height = size;
-    const img = new Image();
-    img.src = "/assets/squid-sprite.png";
-    let frame = 0;
-    let tick  = 0;
-    let loopId;
-    const draw = (f) => {
-      ctx.clearRect(0, 0, size, size);
-      if (img.complete && img.naturalWidth > 0) {
-        const [sx, sy, sw, sh] = IDLE_FRAMES[f];
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
-      }
-    };
-    if (reducedMotion) {
-      img.onload = () => draw(0);
-      if (img.complete && img.naturalWidth > 0) draw(0);
-      return;
-    }
-    const animate = () => {
-      tick++;
-      if (tick % 8 === 0) frame = (frame + 1) % IDLE_FRAMES.length;
-      draw(frame);
-      loopId = requestAnimationFrame(animate);
-    };
-    img.onload = () => { loopId = requestAnimationFrame(animate); };
-    if (img.complete && img.naturalWidth > 0) loopId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(loopId);
-  }, [size]);
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ imageRendering: "pixelated", display: "block" }}
-    />
-  );
-}
-
-// Static first-frame squid via CSS clip — no canvas, no animation
-function SquidStatic({ size = 28 }) {
-  const scale = size / 128;
-  return (
-    <div style={{
-      width: size,
-      height: Math.round(160 * scale),
-      overflow: "hidden",
-      flexShrink: 0,
-      imageRendering: "pixelated",
-    }}>
-      <img
-        src="/assets/squid-sprite.png"
-        alt=""
-        style={{
-          width: 512 * scale,
-          height: 160 * scale,
-          display: "block",
-          imageRendering: "pixelated",
-        }}
-      />
-    </div>
-  );
-}
+import { SquidCanvas as SquidAnimated, SquidStatic } from "../../components/Squid";
 
 function LevelSelect({ player, settings, onPlay, onBack }) {
   const [levels, setLevels] = useState([]);

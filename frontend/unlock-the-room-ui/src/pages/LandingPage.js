@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { SquidCanvas } from '../components/Squid';
 
 const GITHUB_URL = 'https://github.com/GreySquiid/Unlock-The-Room';
 
@@ -46,11 +47,9 @@ function LandingPage() {
 
       {/* ── Hero ── */}
       <div style={styles.hero}>
-        <img
-          src="/assets/squid-sprite.png"
-          alt="GreySquiid mascot"
-          style={styles.squid}
-        />
+        <div style={styles.squidWrap}>
+          <SquidCanvas size={96} />
+        </div>
         <h1 style={styles.heroTitle}>Unlock The Room</h1>
         <p style={styles.heroPitch}>
           AI-assisted puzzle platformer with full-stack admin tooling — a WGU capstone, polished as a portfolio piece.
@@ -212,11 +211,9 @@ const styles = {
     textAlign: 'center',
     color: 'var(--surface)',
   },
-  squid: {
-    width: '64px',
-    height: '64px',
+  squidWrap: {
     marginBottom: '1rem',
-    imageRendering: 'pixelated',
+    display: 'inline-flex',
   },
   heroTitle: {
     fontSize: 'clamp(2rem, 5vw, 3.5rem)',
